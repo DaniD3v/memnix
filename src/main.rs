@@ -1,10 +1,11 @@
 use std::{fs, path::PathBuf};
 
+use bumpalo::Bump;
 use clap::Parser;
 
-use crate::ast_wrapper::from_root_node;
+use crate::mir::from_root_node;
 
-mod ast_wrapper;
+mod mir;
 mod object_hash;
 
 #[derive(Parser, Debug)]
@@ -20,7 +21,10 @@ fn main() {
         .unwrap_or_else(|_| panic!("failed to read {:#?}", &args.input_file));
 
     let root = rnix::Root::parse(&input_content).tree();
-    let expr = from_root_node(root);
+    println!("Ast: {:#?}", root);
 
-    println!("{:?}", expr);
+    let bump = Bump::new();
+
+    let expr = from_root_node(root, &bump);
+    println!("Mir: {:?}", expr);
 }

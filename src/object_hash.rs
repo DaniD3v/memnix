@@ -1,18 +1,10 @@
-use std::hash::{Hash, Hasher};
-
-use crate::ast_wrapper::Expr;
+use std::hash::Hasher;
 
 /// Uniquely identifies a nix object.
 /// Objects sharing the same hash must be sementically equivalent
-pub trait ObjectHash: Hash {
-    fn object_hash<H: Hasher>(&self, state: &mut H) {
-        // While this impl makes the code very simple
-        // It has the problem of including spans.
-        //
-        // This means whole files might get invalidated
-        // where they wouldn't need to.
-        self.hash(state);
-    }
+pub trait ObjectHash {
+    /// Implementation Detail:
+    ///   The hashes of objects of 2 different types are never allowed to be equal.
+    ///   This means the hash must include some sort of type id.
+    fn object_hash<H: Hasher>(&self, state: &mut H);
 }
-
-impl ObjectHash for Expr {}

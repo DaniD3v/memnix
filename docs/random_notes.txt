@@ -1,0 +1,40 @@
+
+# file level
+anonymous lambda
+
+(this can be easily hashed)
+x: x + 5
+
+(this can be easily hashed)
+let a = 3;
+(this captures -> a bit more difficult)
+x: x + a
+
+(don't hash dynamic imports)
+
+rec {
+	(this can't be hashed -> error early)
+	a = b + 1;
+	b = a + 1;
+}
+
+so every object has a hash ->
+
+# this is a bit cookaval
+# ig a pre-existing hash for a self object?
+add_1_x_times = x: if (x == 0) then x else (1 + add_1_x_times (x - 1));
+
+
+For every obj I need to determine:
+	which other objects it is dependent on (change-wise)
+
+
+nix-repl> test = rec {bb = "b"; ${bb + bb} = 2;}
+
+nix-repl> test.bb
+error: dynamic attribute 'bb' already defined at «string»:1:7
+       at «string»:1:17:
+            1|  rec {bb = "b"; ${bb + bb} = 2;}
+             |                 ^
+
+this behavior is fucking insane
