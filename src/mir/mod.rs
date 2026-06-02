@@ -29,8 +29,11 @@ pub fn from_root_node<'bump>(root: Root, bump: &'bump Bump) -> &'bump Expr<'bump
 pub enum Expr<'bump> {
     Literal(Literal),
     LetIn(&'bump LetIn<'bump>),
-    VariableRef,
+    Param(&'bump Param),
 }
+
+#[derive(Debug)]
+struct Param;
 
 #[derive(Hash, Debug)]
 pub enum Literal {

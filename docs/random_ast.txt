@@ -1,0 +1,68 @@
+# LetBinding {
+# 	bindings: {
+# 		fib: Lambda {
+# 			# not hashed
+# 			param: "x",
+
+# 			expr: Expr {
+# 				if {
+# 					condition: BinExpr {
+# 						left: Pointer("x")
+
+# 					}
+# 				}
+# 			}
+# 		}
+# 	}
+
+# }
+
+rec {
+  # should have the same hash
+  a = x: x + 1;
+  b = x: x + 1;
+
+  # content hashed, bound variable (easy, no cycles)
+  var1 = 1;
+  var2 = 2;
+  # should have different hashes (take content of variable)
+  c = x: x + var1;
+  d = x: x + var2;
+
+  # ???
+  recCase = x: y: {
+    a = z: z + x;
+    b = z: z + y;
+  };
+
+  recLambda = rec {
+    a = x: b x;
+    b = x: a x;
+  };
+}
+
+# a = Hash(b, var x)
+# b = Hash(a (cycle resolver), var x)
+# a = Hash(Hash(cycle resolver, var x), var x)
+
+# b = Hash(a, var x)
+# Hash(Hash(Hash(cycle resolver, var x), var x), var x)
+
+enum Hash {
+  Evaluted(Hash),
+  Cyclic(Hash, Sources),
+  Evaluating,
+  None
+}
+
+# {
+# 	fib: Lambda {
+# 		param: "a",
+# 		expr: Expr {
+# 			BinExpr {
+# 				left: Var("a"),
+# 				right: Literal(1),
+# 			}
+# 		}
+# 	}
+# }
