@@ -1,23 +1,18 @@
+#![allow(dead_code)]
 //! This module wraps the primitive rnix-ast into a more high-level format
 
 mod lazy_eval;
 mod symbol_resolver;
 
+mod expression;
 mod lambda;
 mod let_in;
 
 use bumpalo::Bump;
 use ordered_float::NotNan;
-use rnix::{
-    Root,
-    ast::{self, LiteralKind},
-};
+use rnix::{Root, ast::LiteralKind};
 
-use crate::mir::{
-    lazy_eval::Resolve,
-    let_in::LetIn,
-    symbol_resolver::{NullResolver, Resolver},
-};
+use crate::mir::{expression::Expr, lazy_eval::Resolve, symbol_resolver::NullResolver};
 
 pub fn from_root_node<'bump>(root: Root, bump: &'bump Bump) -> &'bump Expr<'bump> {
     root.expr()
@@ -26,14 +21,7 @@ pub fn from_root_node<'bump>(root: Root, bump: &'bump Bump) -> &'bump Expr<'bump
 }
 
 #[derive(Debug)]
-pub enum Expr<'bump> {
-    Literal(Literal),
-    LetIn(&'bump LetIn<'bump>),
-    Param(&'bump Param),
-}
-
-#[derive(Debug)]
-struct Param;
+pub struct Param;
 
 #[derive(Hash, Debug)]
 pub enum Literal {
@@ -55,17 +43,5 @@ impl From<LiteralKind> for Literal {
             LiteralKind::Integer(num) => Literal::Integer(num.value().expect("")),
             _ => todo!(),
         }
-    }
-}
-
-impl Resolve for ast::Expr {
-    type Target<'bump> = &'bump Expr<'bump>;
-
-    fn resolve<'bump>(self, _: &impl Resolver<'bump>, bump: &'bump Bump) -> Self::Target<'bump> {
-        bump.alloc(match self {
-            ast::Expr::Literal(lit) => Expr::Literal(lit.kind().into()),
-            ast::Expr::LetIn(let_in) => Expr::LetIn(let_in.resolve(&NullResolver, bump)),
-            _ => todo!(),
-        })
     }
 }

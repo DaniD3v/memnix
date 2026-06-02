@@ -18,7 +18,7 @@ pub struct Args {
 fn main() {
     let args = Args::parse();
     let input_content = fs::read_to_string(&args.input_file)
-        .unwrap_or_else(|_| panic!("failed to read {:#?}", &args.input_file));
+        .unwrap_or_else(|_| panic!("failed to read {:#?}", args.input_file));
 
     let root = rnix::Root::parse(&input_content).tree();
     println!("Ast: {:#?}", root);

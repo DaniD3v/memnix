@@ -28,15 +28,15 @@ impl Resolve for ast::LetIn {
         // TODO ugly ass code
         for entry in self.entries() {
             match entry {
-                ast::Entry::AttrpathValue(attrPath) => {
-                    let paths = attrPath.attrpath().unwrap().attrs();
+                ast::Entry::AttrpathValue(attr_path) => {
+                    let paths = attr_path.attrpath().unwrap().attrs();
 
                     for p in paths {
                         match p {
                             ast::Attr::Ident(ident) => {
                                 bindings.insert(
                                     ident.to_string(),
-                                    LazyEval::new(attrPath.value().unwrap()),
+                                    LazyEval::new(attr_path.value().unwrap()),
                                 );
                             }
                             _ => todo!(),
