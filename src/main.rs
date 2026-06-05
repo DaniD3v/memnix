@@ -5,11 +5,11 @@ use clap::Parser;
 
 use crate::mir::from_root_node;
 
-mod mir;
-mod object_hash;
+pub mod mir;
+pub mod object_hash;
 
 #[derive(Parser, Debug)]
-pub struct Args {
+struct Args {
     /// Input file
     #[arg(short, long)]
     pub input_file: PathBuf,

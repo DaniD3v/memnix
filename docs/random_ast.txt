@@ -55,6 +55,9 @@ enum Hash {
   None
 }
 
+# how to call those 2 variables:
+# Param
+
 # {
 # 	fib: Lambda {
 # 		param: "a",

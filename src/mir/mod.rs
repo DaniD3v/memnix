@@ -1,47 +1,36 @@
 #![allow(dead_code)]
 //! This module wraps the primitive rnix-ast into a more high-level format
 
+mod error;
+mod ident;
 mod lazy_eval;
 mod symbol_resolver;
 
+mod builtins;
 mod expression;
+mod if_else;
 mod lambda;
+mod lambda_call;
 mod let_in;
+mod literal;
+
+pub use expression::Expr;
 
 use bumpalo::Bump;
-use ordered_float::NotNan;
-use rnix::{Root, ast::LiteralKind};
+use rnix::Root;
 
-use crate::mir::{expression::Expr, lazy_eval::Resolve, symbol_resolver::NullResolver};
+use crate::mir::{error::MirResolveError, lazy_eval::Resolve, symbol_resolver::RootResolver};
 
-pub fn from_root_node<'bump>(root: Root, bump: &'bump Bump) -> &'bump Expr<'bump> {
+pub fn from_root_node<'bump>(
+    root: Root,
+    bump: &'bump Bump,
+) -> Result<&'bump Expr<'bump>, MirResolveError> {
+    let root_resolver = RootResolver::new(bump);
+
     root.expr()
         .expect("parsing errors")
-        .resolve(&NullResolver, bump)
+        .resolve(&root_resolver, bump)
 }
 
 #[derive(Debug)]
 pub struct Param;
-
-#[derive(Hash, Debug)]
-pub enum Literal {
-    Integer(i64),
-    Float(NotNan<f64>),
-    Url(),
-    String(),
-}
-
-impl From<LiteralKind> for Literal {
-    fn from(value: LiteralKind) -> Self {
-        match value {
-            rnix::ast::LiteralKind::Float(num) => {
-                let num = num.value().expect("float parsing error?"); // TODO
-                let num = NotNan::new(num).expect("nix floats cannot be NaN");
-
-                Literal::Float(num)
-            }
-            LiteralKind::Integer(num) => Literal::Integer(num.value().expect("")),
-            _ => todo!(),
-        }
-    }
-}

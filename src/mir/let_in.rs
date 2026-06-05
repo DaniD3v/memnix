@@ -5,8 +5,9 @@ use rnix::ast::{self, HasEntry};
 
 use crate::mir::{
     Expr,
+    error::MirResolveError,
     lazy_eval::{LazyEval, Resolve},
-    symbol_resolver::{BTreeMapResolver, Resolver},
+    symbol_resolver::{LazyMapResolver, Resolver},
 };
 
 #[derive(Debug)]
@@ -20,18 +21,15 @@ impl Resolve for ast::LetIn {
 
     fn resolve<'bump>(
         self,
-        _resolver: &impl Resolver<'bump>,
+        resolver: &impl Resolver<'bump>,
         bump: &'bump Bump,
-    ) -> Self::Target<'bump> {
+    ) -> Result<&'bump LetIn<'bump>, MirResolveError> {
         let mut bindings = BTreeMap::new();
 
-        // TODO ugly ass code
         for entry in self.entries() {
             match entry {
                 ast::Entry::AttrpathValue(attr_path) => {
-                    let paths = attr_path.attrpath().unwrap().attrs();
-
-                    for p in paths {
+                    for p in attr_path.attrpath().unwrap().attrs() {
                         match p {
                             ast::Attr::Ident(ident) => {
                                 bindings.insert(
@@ -47,14 +45,17 @@ impl Resolve for ast::LetIn {
             }
         }
 
-        let expression = self
-            .body()
-            .unwrap()
-            .resolve(&BTreeMapResolver(&bindings), bump);
+        let expression = self.body().unwrap().resolve(
+            &LazyMapResolver {
+                bindings: &bindings,
+                parent: resolver,
+            },
+            bump,
+        )?;
 
-        bump.alloc(LetIn {
+        Ok(bump.alloc(LetIn {
             bindings,
             expression,
-        })
+        }))
     }
 }

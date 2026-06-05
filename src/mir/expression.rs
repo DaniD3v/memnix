@@ -2,27 +2,43 @@ use bumpalo::Bump;
 use rnix::ast;
 
 use crate::mir::{
-    Literal, Param,
-    lazy_eval::Resolve,
-    let_in::LetIn,
-    symbol_resolver::{NullResolver, Resolver},
+    Param, error::MirResolveError, lambda::Lambda, lambda_call::LambdaCall, lazy_eval::Resolve,
+    let_in::LetIn, literal::Literal, symbol_resolver::Resolver,
 };
 
 #[derive(Debug)]
 pub enum Expr<'bump> {
-    Literal(Literal),
     LetIn(&'bump LetIn<'bump>),
+    LambdaCall(&'bump LambdaCall<'bump>),
+    Lambda(&'bump Lambda<'bump>),
+    Literal(Literal),
+
     Param(&'bump Param),
+
+    Intrinsic,
 }
 
 impl Resolve for ast::Expr {
     type Target<'bump> = &'bump Expr<'bump>;
 
-    fn resolve<'bump>(self, _: &impl Resolver<'bump>, bump: &'bump Bump) -> Self::Target<'bump> {
-        bump.alloc(match self {
-            ast::Expr::Literal(lit) => Expr::Literal(lit.kind().into()),
-            ast::Expr::LetIn(let_in) => Expr::LetIn(let_in.resolve(&NullResolver, bump)),
-            _ => todo!(),
+    fn resolve<'bump>(
+        self,
+        resolver: &impl Resolver<'bump>,
+        bump: &'bump Bump,
+    ) -> Result<&'bump Expr<'bump>, MirResolveError> {
+        Ok(match self {
+            ast::Expr::LetIn(let_in) => bump.alloc(Expr::LetIn(let_in.resolve(resolver, bump)?)),
+            ast::Expr::Apply(apply) => bump.alloc(Expr::LambdaCall(apply.resolve(resolver, bump)?)),
+            ast::Expr::Lambda(lambda) => bump.alloc(Expr::Lambda(lambda.resolve(resolver, bump)?)),
+            ast::Expr::Literal(lit) => bump.alloc(Expr::Literal(lit.kind().into())),
+
+            ast::Expr::IfElse(if_else) => {
+                bump.alloc(Expr::LambdaCall(if_else.resolve(resolver, bump)?))
+            }
+            ast::Expr::Paren(paren) => paren.expr().unwrap().resolve(resolver, bump)?,
+            ast::Expr::Ident(ident) => resolver.resolve_ident(ident.into(), bump)?,
+
+            _ => todo!("Translate {:?} to Mir", self),
         })
     }
 }
