@@ -16,7 +16,7 @@ impl Resolve for BinOp {
         let lhs = self.lhs().unwrap().resolve(resolver, bump)?;
         let rhs = self.rhs().unwrap().resolve(resolver, bump)?;
 
-        let lambda = match self.operator().unwrap() {
+        let lambda = match operator_kind {
             rnix::ast::BinOpKind::LessOrEq => intrinsics.less_or_eq(),
 
             _ => todo!("Translate {:?} BinOp to Mir", operator_kind),

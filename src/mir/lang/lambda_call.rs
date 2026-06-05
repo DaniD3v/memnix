@@ -43,7 +43,7 @@ impl Resolve for ast::Apply {
     fn resolve<'bump>(
         self,
         resolver: &impl Resolver<'bump>,
-        bump: &'bump bumpalo::Bump,
+        bump: &'bump Bump,
     ) -> Result<LambdaCall<'bump>, MirResolveError> {
         let lambda = self.lambda().unwrap().resolve(resolver, bump)?;
         let argument = self.argument().unwrap().resolve(resolver, bump)?;
