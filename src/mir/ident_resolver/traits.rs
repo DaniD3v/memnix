@@ -1,6 +1,6 @@
 use bumpalo::Bump;
 
-use crate::mir::{Expr, Ident, error::MirResolveError, intrinsics::Intrinsics};
+use crate::mir::{Expr, Ident, error::MirResolveError, lang::Intrinsics};
 
 pub trait Resolver<'bump> {
     fn resolve_ident(

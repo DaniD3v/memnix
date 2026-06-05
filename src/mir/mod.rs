@@ -4,22 +4,10 @@
 mod error;
 mod ident;
 mod ident_resolver;
+mod lang;
 
-mod bin_expr;
-mod expression;
-mod if_else;
-mod intrinsics;
-mod lambda;
-mod lambda_call;
-mod let_in;
-mod literal;
-
-pub use expression::Expr;
 pub use ident::Ident;
-pub use lambda::Lambda;
-pub use lambda_call::LambdaCall;
-pub use let_in::LetIn;
-pub use literal::Literal;
+pub use lang::{Expr, Lambda, LambdaCall, LetIn, Literal};
 
 use bumpalo::Bump;
 use rnix::Root;

@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use bumpalo::Bump;
 use rnix::ast;
 
-use crate::mir::{Expr, Ident, error::MirResolveError, intrinsics::Intrinsics};
+use crate::mir::{Expr, Ident, error::MirResolveError, lang::Intrinsics};
 
 use super::{LazyEval, Resolver};
 

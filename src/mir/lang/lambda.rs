@@ -2,8 +2,7 @@ use bumpalo::Bump;
 use rnix::ast;
 
 use crate::mir::{
-    Expr, Ident, Param, Resolve, Resolver, SingleIdentResolver,
-    error::MirResolveError,
+    Expr, Ident, Param, Resolve, Resolver, SingleIdentResolver, error::MirResolveError,
 };
 
 #[derive(Debug)]

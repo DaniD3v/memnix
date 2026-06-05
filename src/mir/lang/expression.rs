@@ -2,8 +2,7 @@ use bumpalo::Bump;
 use rnix::ast;
 
 use crate::mir::{
-    Lambda, LambdaCall, LetIn, Literal, Param, Resolve, Resolver,
-    error::MirResolveError,
+    Lambda, LambdaCall, LetIn, Literal, Param, Resolve, Resolver, error::MirResolveError,
 };
 
 #[derive(Debug)]
