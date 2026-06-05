@@ -2,7 +2,7 @@ use bumpalo::Bump;
 use rnix::ast;
 
 use crate::mir::{
-    Expr, Ident, Param, Resolve, Resolver, SingleIdentResolver, error::MirResolveError,
+    Expr, Ident, LambdaParamResolver, Param, Resolve, Resolver, error::MirResolveError,
 };
 
 #[derive(Debug)]
@@ -42,9 +42,9 @@ impl Resolve for ast::Lambda {
         }
         .into();
 
-        let resolver = SingleIdentResolver {
+        let resolver = LambdaParamResolver {
             ident: param.clone(),
-            expr: bump.alloc(Expr::Param(Param)),
+            expr: bump.alloc(Expr::Param(Param::new(resolver))),
             parent: resolver,
         };
         let body = self.body().unwrap().resolve(&resolver, bump)?;

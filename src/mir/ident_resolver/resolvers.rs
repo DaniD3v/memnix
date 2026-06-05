@@ -19,6 +19,9 @@ impl<'b> Resolver<'b> for RootResolver<'b> {
         Err(MirResolveError::IdentUnresolvable(ident))
     }
 
+    fn get_param_nesting_depth(&self) -> u32 {
+        0
+    }
     fn get_intrinsics(&self) -> &'b Intrinsics<'b> {
         self.0
     }
@@ -41,18 +44,21 @@ impl<'a, 'bump> Resolver<'bump> for LazyMapResolver<'a, 'bump> {
             .ok_or(MirResolveError::IdentUnresolvable(ident))?
     }
 
+    fn get_param_nesting_depth(&self) -> u32 {
+        self.parent.get_param_nesting_depth()
+    }
     fn get_intrinsics(&self) -> &'bump Intrinsics<'bump> {
         self.parent.get_intrinsics()
     }
 }
 
-pub struct SingleIdentResolver<'a, 'bump> {
+pub struct LambdaParamResolver<'a, 'bump> {
     pub ident: Ident,
     pub expr: &'bump Expr<'bump>,
     // Note: dyn is required as infinite resolver chains have to be possible
     pub parent: &'a dyn Resolver<'bump>,
 }
-impl<'a, 'bump> Resolver<'bump> for SingleIdentResolver<'a, 'bump> {
+impl<'a, 'bump> Resolver<'bump> for LambdaParamResolver<'a, 'bump> {
     fn resolve_ident(
         &self,
         ident: Ident,
@@ -65,6 +71,10 @@ impl<'a, 'bump> Resolver<'bump> for SingleIdentResolver<'a, 'bump> {
         }
     }
 
+    fn get_param_nesting_depth(&self) -> u32 {
+        // TODO cache this
+        self.parent.get_param_nesting_depth() + 1
+    }
     fn get_intrinsics(&self) -> &'bump Intrinsics<'bump> {
         self.parent.get_intrinsics()
     }

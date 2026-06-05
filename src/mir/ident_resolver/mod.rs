@@ -3,5 +3,5 @@ mod resolvers;
 mod traits;
 
 pub use lazy_eval::LazyEval;
-pub use resolvers::{LazyMapResolver, RootResolver, SingleIdentResolver};
+pub use resolvers::{LazyMapResolver, RootResolver, LambdaParamResolver};
 pub use traits::{Resolve, Resolver};

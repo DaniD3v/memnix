@@ -7,14 +7,14 @@ mod ident_resolver;
 mod lang;
 
 pub use ident::Ident;
-pub use lang::{Expr, Lambda, LambdaCall, LetIn, Literal};
+pub use lang::{Expr, Lambda, LambdaCall, LetIn, Literal, Param};
 
 use bumpalo::Bump;
 use rnix::Root;
 
 use error::MirResolveError;
 use ident_resolver::{
-    LazyEval, LazyMapResolver, Resolve, Resolver, RootResolver, SingleIdentResolver,
+    LambdaParamResolver, LazyEval, LazyMapResolver, Resolve, Resolver, RootResolver,
 };
 
 pub fn from_root_node<'bump>(
@@ -27,6 +27,3 @@ pub fn from_root_node<'bump>(
         .expect("parsing errors")
         .resolve(&root_resolver, bump)
 }
-
-#[derive(Debug)]
-pub struct Param;
