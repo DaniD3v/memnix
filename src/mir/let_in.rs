@@ -3,12 +3,7 @@ use std::collections::BTreeMap;
 use bumpalo::Bump;
 use rnix::ast::{self, HasEntry};
 
-use crate::mir::{
-    Expr,
-    error::MirResolveError,
-    lazy_eval::{LazyEval, Resolve},
-    symbol_resolver::{LazyMapResolver, Resolver},
-};
+use crate::mir::{Expr, LazyEval, LazyMapResolver, Resolve, Resolver, error::MirResolveError};
 
 #[derive(Debug)]
 pub struct LetIn<'bump> {

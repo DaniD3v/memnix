@@ -2,17 +2,9 @@ use std::{fmt::Debug, sync::Mutex};
 
 use bumpalo::Bump;
 
-use crate::mir::{error::MirResolveError, symbol_resolver::Resolver};
+use crate::mir::error::MirResolveError;
 
-/// Ast type that can be resolved to a Mir type
-pub trait Resolve: Sized {
-    type Target<'a>;
-    fn resolve<'bump>(
-        self,
-        resolver: &impl Resolver<'bump>,
-        bump: &'bump Bump,
-    ) -> Result<Self::Target<'bump>, MirResolveError>;
-}
+use super::{Resolve, Resolver};
 
 #[derive(Debug)]
 enum EvalState<'bump, A: Resolve> {

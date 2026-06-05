@@ -1,9 +1,7 @@
 use bumpalo::Bump;
 use rnix::ast::IfElse;
 
-use crate::mir::{
-    LambdaCall, error::MirResolveError, lazy_eval::Resolve, symbol_resolver::Resolver,
-};
+use crate::mir::{LambdaCall, Resolve, Resolver, error::MirResolveError};
 
 impl Resolve for IfElse {
     type Target<'a> = LambdaCall<'a>;

@@ -2,11 +2,8 @@ use bumpalo::Bump;
 use rnix::ast;
 
 use crate::mir::{
-    Expr, Param,
+    Expr, Ident, Param, Resolve, Resolver, SingleIdentResolver,
     error::MirResolveError,
-    Ident,
-    lazy_eval::Resolve,
-    symbol_resolver::{Resolver, SingleIdentResolver},
 };
 
 #[derive(Debug)]

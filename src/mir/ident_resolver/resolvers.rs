@@ -3,19 +3,9 @@ use std::collections::BTreeMap;
 use bumpalo::Bump;
 use rnix::ast;
 
-use crate::mir::{
-    Expr, Ident, error::MirResolveError, intrinsics::Intrinsics, lazy_eval::LazyEval,
-};
+use crate::mir::{Expr, Ident, error::MirResolveError, intrinsics::Intrinsics};
 
-pub trait Resolver<'bump> {
-    fn resolve_ident(
-        &self,
-        ident: Ident,
-        bump: &'bump Bump,
-    ) -> Result<&'bump Expr<'bump>, MirResolveError>;
-
-    fn get_intrinsics(&self) -> &'bump Intrinsics<'bump>;
-}
+use super::{LazyEval, Resolver};
 
 pub struct RootResolver<'bump>(&'bump Intrinsics<'bump>);
 impl<'bump> RootResolver<'bump> {

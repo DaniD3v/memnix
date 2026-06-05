@@ -3,8 +3,7 @@
 
 mod error;
 mod ident;
-mod lazy_eval;
-mod symbol_resolver;
+mod ident_resolver;
 
 mod bin_expr;
 mod expression;
@@ -25,7 +24,10 @@ pub use literal::Literal;
 use bumpalo::Bump;
 use rnix::Root;
 
-use crate::mir::{error::MirResolveError, lazy_eval::Resolve, symbol_resolver::RootResolver};
+use error::MirResolveError;
+use ident_resolver::{
+    LazyEval, LazyMapResolver, Resolve, Resolver, RootResolver, SingleIdentResolver,
+};
 
 pub fn from_root_node<'bump>(
     root: Root,

@@ -1,7 +1,7 @@
 use bumpalo::Bump;
 use rnix::ast;
 
-use crate::mir::{Expr, error::MirResolveError, lazy_eval::Resolve};
+use crate::mir::{Expr, Resolve, Resolver, error::MirResolveError};
 
 #[derive(Debug)]
 pub struct LambdaCall<'bump> {
@@ -42,7 +42,7 @@ impl Resolve for ast::Apply {
 
     fn resolve<'bump>(
         self,
-        resolver: &impl super::symbol_resolver::Resolver<'bump>,
+        resolver: &impl Resolver<'bump>,
         bump: &'bump bumpalo::Bump,
     ) -> Result<LambdaCall<'bump>, MirResolveError> {
         let lambda = self.lambda().unwrap().resolve(resolver, bump)?;
