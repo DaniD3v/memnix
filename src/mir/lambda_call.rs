@@ -17,10 +17,10 @@ impl<'bump> LambdaCall<'bump> {
         lambda: &'bump Expr<'bump>,
         args: &[&'bump Expr<'bump>],
         bump: &'bump Bump,
-    ) -> &'bump Self {
+    ) -> Self {
         assert!(!args.is_empty());
 
-        bump.alloc(LambdaCall {
+        LambdaCall {
             lambda,
             argument: if args.len() == 1 {
                 args[0]
@@ -33,21 +33,21 @@ impl<'bump> LambdaCall<'bump> {
                     lambda, args, bump,
                 )))
             },
-        })
+        }
     }
 }
 
 impl Resolve for ast::Apply {
-    type Target<'bump> = &'bump LambdaCall<'bump>;
+    type Target<'bump> = LambdaCall<'bump>;
 
     fn resolve<'bump>(
         self,
         resolver: &impl super::symbol_resolver::Resolver<'bump>,
         bump: &'bump bumpalo::Bump,
-    ) -> Result<&'bump LambdaCall<'bump>, MirResolveError> {
+    ) -> Result<LambdaCall<'bump>, MirResolveError> {
         let lambda = self.lambda().unwrap().resolve(resolver, bump)?;
         let argument = self.argument().unwrap().resolve(resolver, bump)?;
 
-        Ok(bump.alloc(LambdaCall { lambda, argument }))
+        Ok(LambdaCall { lambda, argument })
     }
 }

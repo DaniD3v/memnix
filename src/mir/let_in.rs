@@ -17,13 +17,13 @@ pub struct LetIn<'bump> {
 }
 
 impl Resolve for ast::LetIn {
-    type Target<'bump> = &'bump LetIn<'bump>;
+    type Target<'bump> = LetIn<'bump>;
 
     fn resolve<'bump>(
         self,
         resolver: &impl Resolver<'bump>,
         bump: &'bump Bump,
-    ) -> Result<&'bump LetIn<'bump>, MirResolveError> {
+    ) -> Result<LetIn<'bump>, MirResolveError> {
         let mut bindings = BTreeMap::new();
 
         for entry in self.entries() {
@@ -53,9 +53,9 @@ impl Resolve for ast::LetIn {
             bump,
         )?;
 
-        Ok(bump.alloc(LetIn {
+        Ok(LetIn {
             bindings,
             expression,
-        }))
+        })
     }
 }

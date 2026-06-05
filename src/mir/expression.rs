@@ -8,12 +8,12 @@ use crate::mir::{
 
 #[derive(Debug)]
 pub enum Expr<'bump> {
-    LetIn(&'bump LetIn<'bump>),
-    LambdaCall(&'bump LambdaCall<'bump>),
+    LetIn(LetIn<'bump>),
+    LambdaCall(LambdaCall<'bump>),
     Lambda(&'bump Lambda<'bump>),
     Literal(Literal),
 
-    Param(&'bump Param),
+    Param(Param),
 
     Intrinsic,
 }

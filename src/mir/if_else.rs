@@ -7,7 +7,7 @@ use crate::mir::{
 };
 
 impl Resolve for IfElse {
-    type Target<'a> = &'a LambdaCall<'a>;
+    type Target<'a> = LambdaCall<'a>;
 
     /// An if/else expression doesn't require a special mir type at all.,
     /// Its functionality can simply be represented by a builtin functioncall,
@@ -19,7 +19,7 @@ impl Resolve for IfElse {
         self,
         resolver: &impl Resolver<'bump>,
         bump: &'bump Bump,
-    ) -> Result<Self::Target<'bump>, MirResolveError> {
+    ) -> Result<LambdaCall<'bump>, MirResolveError> {
         let condition = self.condition().unwrap().resolve(resolver, bump)?;
 
         let builtins_if_else = bump.alloc(Expr::Lambda(resolver.get_intrinsics().if_else()));

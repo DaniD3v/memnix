@@ -48,7 +48,7 @@ impl Resolve for ast::Lambda {
 
         let resolver = SingleIdentResolver {
             ident: param.clone(),
-            expr: bump.alloc(Expr::Param(&Param)),
+            expr: bump.alloc(Expr::Param(Param)),
             parent: resolver,
         };
         let body = self.body().unwrap().resolve(&resolver, bump)?;
