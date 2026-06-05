@@ -4,7 +4,7 @@ use rnix::ast;
 use crate::mir::{
     Expr, Param,
     error::MirResolveError,
-    ident::Ident,
+    Ident,
     lazy_eval::Resolve,
     symbol_resolver::{Resolver, SingleIdentResolver},
 };

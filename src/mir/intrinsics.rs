@@ -1,6 +1,6 @@
 use bumpalo::Bump;
 
-use crate::mir::{Expr, lambda::Lambda};
+use crate::mir::{Expr, Lambda};
 
 /// The rnix does not implement Send + Sync on its types.
 /// This makes it impossible to construct a LazyLock which holds Intrinsics.

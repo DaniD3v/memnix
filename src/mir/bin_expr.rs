@@ -1,6 +1,6 @@
 use rnix::ast::BinOp;
 
-use crate::mir::{error::MirResolveError, lambda_call::LambdaCall, lazy_eval::Resolve};
+use crate::mir::{LambdaCall, error::MirResolveError, lazy_eval::Resolve};
 
 impl Resolve for BinOp {
     type Target<'a> = LambdaCall<'a>;

@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::mir::ident::Ident;
+use crate::mir::Ident;
 
 #[derive(Error, Debug)]
 pub enum MirResolveError {

@@ -16,6 +16,11 @@ mod let_in;
 mod literal;
 
 pub use expression::Expr;
+pub use ident::Ident;
+pub use lambda::Lambda;
+pub use lambda_call::LambdaCall;
+pub use let_in::LetIn;
+pub use literal::Literal;
 
 use bumpalo::Bump;
 use rnix::Root;

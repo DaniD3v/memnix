@@ -2,8 +2,7 @@ use bumpalo::Bump;
 use rnix::ast::IfElse;
 
 use crate::mir::{
-    error::MirResolveError, lambda_call::LambdaCall, lazy_eval::Resolve,
-    symbol_resolver::Resolver,
+    LambdaCall, error::MirResolveError, lazy_eval::Resolve, symbol_resolver::Resolver,
 };
 
 impl Resolve for IfElse {
