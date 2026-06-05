@@ -26,20 +26,20 @@ impl<'bump> Lambda<'bump> {
             body: bump.alloc(if params.len() == 1 {
                 Expr::Intrinsic
             } else {
-                Expr::Lambda(bump.alloc(Self::intrinsic_with_params(&params[1..], bump)))
+                Expr::Lambda(Self::intrinsic_with_params(&params[1..], bump))
             }),
         }
     }
 }
 
 impl Resolve for ast::Lambda {
-    type Target<'bump> = &'bump Lambda<'bump>;
+    type Target<'bump> = Lambda<'bump>;
 
     fn resolve<'bump>(
         self,
         resolver: &impl Resolver<'bump>,
         bump: &'bump Bump,
-    ) -> Result<&'bump Lambda<'bump>, MirResolveError> {
+    ) -> Result<Lambda<'bump>, MirResolveError> {
         let param: Ident = match self.param().unwrap() {
             ast::Param::IdentParam(ident) => ident.ident().unwrap(),
             ast::Param::Pattern(_) => todo!("oje"),
@@ -53,6 +53,6 @@ impl Resolve for ast::Lambda {
         };
         let body = self.body().unwrap().resolve(&resolver, bump)?;
 
-        Ok(bump.alloc(Lambda { param, body }))
+        Ok(Lambda { param, body })
     }
 }

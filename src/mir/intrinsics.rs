@@ -1,27 +1,38 @@
 use bumpalo::Bump;
-use getset::Getters;
 
-use crate::mir::lambda::Lambda;
+use crate::mir::{Expr, lambda::Lambda};
 
 /// The rnix does not implement Send + Sync on its types.
 /// This makes it impossible to construct a LazyLock which holds Intrinsics.
 ///
 /// As a "temporary" workaround, Intrinsics is a struct
-#[derive(Getters)]
-#[getset(get = "pub")]
 pub struct Intrinsics<'bump> {
-    if_else: Lambda<'bump>,
-    less_or_eq: Lambda<'bump>,
+    if_else: &'bump Expr<'bump>,
+    less_or_eq: &'bump Expr<'bump>,
 }
 
 impl<'b> Intrinsics<'b> {
     pub fn new(bump: &'b Bump) -> Self {
         Intrinsics {
-            if_else: Lambda::intrinsic_with_params(&["condition", "then_call", "else_call"], bump),
+            if_else: bump.alloc(Expr::Lambda(Lambda::intrinsic_with_params(
+                &["condition", "then_call", "else_call"],
+                bump,
+            ))),
 
             // TODO: less_or_eq can be generated from `less`, `equals` and `and`
-            less_or_eq: Lambda::intrinsic_with_params(&["l", "r"], bump),
+            less_or_eq: bump.alloc(Expr::Lambda(Lambda::intrinsic_with_params(
+                &["l", "r"],
+                bump,
+            ))),
         }
+    }
+
+    pub fn if_else(&self) -> &'b Expr<'b> {
+        self.if_else
+    }
+
+    pub fn less_or_eq(&self) -> &'b Expr<'b> {
+        self.less_or_eq
     }
 }
 

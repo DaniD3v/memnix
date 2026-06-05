@@ -10,7 +10,7 @@ use crate::mir::{
 pub enum Expr<'bump> {
     LetIn(LetIn<'bump>),
     LambdaCall(LambdaCall<'bump>),
-    Lambda(&'bump Lambda<'bump>),
+    Lambda(Lambda<'bump>),
     Literal(Literal),
 
     Param(Param),

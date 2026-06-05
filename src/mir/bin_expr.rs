@@ -1,6 +1,6 @@
 use rnix::ast::BinOp;
 
-use crate::mir::{Expr, error::MirResolveError, lambda_call::LambdaCall, lazy_eval::Resolve};
+use crate::mir::{error::MirResolveError, lambda_call::LambdaCall, lazy_eval::Resolve};
 
 impl Resolve for BinOp {
     type Target<'a> = LambdaCall<'a>;
@@ -16,11 +16,11 @@ impl Resolve for BinOp {
         let lhs = self.lhs().unwrap().resolve(resolver, bump)?;
         let rhs = self.rhs().unwrap().resolve(resolver, bump)?;
 
-        let lambda = bump.alloc(Expr::Lambda(match self.operator().unwrap() {
+        let lambda = match self.operator().unwrap() {
             rnix::ast::BinOpKind::LessOrEq => intrinsics.less_or_eq(),
 
             _ => todo!("Translate {:?} BinOp to Mir", operator_kind),
-        }));
+        };
 
         Ok(LambdaCall::new_curried(lambda, &[lhs, rhs], bump))
     }

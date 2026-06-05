@@ -2,7 +2,7 @@ use bumpalo::Bump;
 use rnix::ast::IfElse;
 
 use crate::mir::{
-    Expr, error::MirResolveError, lambda_call::LambdaCall, lazy_eval::Resolve,
+    error::MirResolveError, lambda_call::LambdaCall, lazy_eval::Resolve,
     symbol_resolver::Resolver,
 };
 
@@ -22,9 +22,8 @@ impl Resolve for IfElse {
     ) -> Result<LambdaCall<'bump>, MirResolveError> {
         let condition = self.condition().unwrap().resolve(resolver, bump)?;
 
-        let builtins_if_else = bump.alloc(Expr::Lambda(resolver.get_intrinsics().if_else()));
         Ok(LambdaCall::new_curried(
-            builtins_if_else,
+            resolver.get_intrinsics().if_else(),
             &[condition],
             bump,
         ))
