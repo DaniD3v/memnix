@@ -11,12 +11,16 @@ use crate::mir::lambda::Lambda;
 #[getset(get = "pub")]
 pub struct Intrinsics<'bump> {
     if_else: Lambda<'bump>,
+    less_or_eq: Lambda<'bump>,
 }
 
 impl<'b> Intrinsics<'b> {
     pub fn new(bump: &'b Bump) -> Self {
         Intrinsics {
             if_else: Lambda::intrinsic_with_params(&["condition", "then_call", "else_call"], bump),
+
+            // TODO: less_or_eq can be generated from `less`, `equals` and `and`
+            less_or_eq: Lambda::intrinsic_with_params(&["l", "r"], bump),
         }
     }
 }

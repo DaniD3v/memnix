@@ -26,5 +26,5 @@ fn main() {
     let bump = Bump::new();
 
     let expr = from_root_node(root, &bump);
-    println!("Mir: {:?}", expr);
+    println!("Mir: {:#?}", expr);
 }

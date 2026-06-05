@@ -4,7 +4,7 @@ use bumpalo::Bump;
 use rnix::ast;
 
 use crate::mir::{
-    Expr, builtins::Intrinsics, error::MirResolveError, ident::Ident, lazy_eval::LazyEval,
+    Expr, error::MirResolveError, ident::Ident, intrinsics::Intrinsics, lazy_eval::LazyEval,
 };
 
 pub trait Resolver<'bump> {

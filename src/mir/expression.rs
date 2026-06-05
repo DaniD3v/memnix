@@ -35,6 +35,9 @@ impl Resolve for ast::Expr {
             ast::Expr::IfElse(if_else) => {
                 bump.alloc(Expr::LambdaCall(if_else.resolve(resolver, bump)?))
             }
+            ast::Expr::BinOp(bin_op) => {
+                bump.alloc(Expr::LambdaCall(bin_op.resolve(resolver, bump)?))
+            }
             ast::Expr::Paren(paren) => paren.expr().unwrap().resolve(resolver, bump)?,
             ast::Expr::Ident(ident) => resolver.resolve_ident(ident.into(), bump)?,
 

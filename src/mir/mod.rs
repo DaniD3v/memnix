@@ -6,9 +6,10 @@ mod ident;
 mod lazy_eval;
 mod symbol_resolver;
 
-mod builtins;
+mod bin_expr;
 mod expression;
 mod if_else;
+mod intrinsics;
 mod lambda;
 mod lambda_call;
 mod let_in;
