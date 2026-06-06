@@ -38,7 +38,7 @@ impl Resolve for ast::Expr {
                 bump.alloc(Expr::LambdaCall(bin_op.resolve(resolver, bump)?))
             }
             ast::Expr::Paren(paren) => paren.expr().unwrap().resolve(resolver, bump)?,
-            ast::Expr::Ident(ident) => resolver.resolve_ident(ident.into(), bump)?,
+            ast::Expr::Ident(ident) => resolver.resolve_ident(&ident.into(), bump)?,
 
             _ => todo!("Translate {:?} to Mir", self),
         })

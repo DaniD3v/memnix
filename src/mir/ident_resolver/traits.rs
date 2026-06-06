@@ -5,7 +5,7 @@ use crate::mir::{Expr, Ident, error::MirResolveError, lang::Intrinsics};
 pub trait Resolver<'bump> {
     fn resolve_ident(
         &self,
-        ident: Ident,
+        ident: &Ident,
         bump: &'bump Bump,
     ) -> Result<&'bump Expr<'bump>, MirResolveError>;
 

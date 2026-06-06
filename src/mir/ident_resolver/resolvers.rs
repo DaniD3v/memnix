@@ -15,8 +15,8 @@ impl<'bump> RootResolver<'bump> {
 }
 
 impl<'b> Resolver<'b> for RootResolver<'b> {
-    fn resolve_ident(&self, ident: Ident, _: &'b Bump) -> Result<&'b Expr<'b>, MirResolveError> {
-        Err(MirResolveError::IdentUnresolvable(ident))
+    fn resolve_ident(&self, ident: &Ident, _: &'b Bump) -> Result<&'b Expr<'b>, MirResolveError> {
+        Err(MirResolveError::IdentUnresolvable(ident.clone()))
     }
 
     fn get_param_nesting_depth(&self) -> u32 {
@@ -35,13 +35,18 @@ pub struct LazyMapResolver<'a, 'bump> {
 impl<'a, 'bump> Resolver<'bump> for LazyMapResolver<'a, 'bump> {
     fn resolve_ident(
         &self,
-        ident: Ident,
+        ident: &Ident,
         bump: &'bump Bump,
     ) -> Result<&'bump Expr<'bump>, MirResolveError> {
-        self.bindings
+        match self
+            .bindings
             .get(ident.as_ref())
             .map(|lazy| lazy.resolve(self, bump))
-            .ok_or(MirResolveError::IdentUnresolvable(ident))?
+            .transpose()?
+        {
+            Some(found) => Ok(found),
+            None => self.parent.resolve_ident(ident, bump),
+        }
     }
 
     fn get_param_nesting_depth(&self) -> u32 {
@@ -61,13 +66,13 @@ pub struct LambdaParamResolver<'a, 'bump> {
 impl<'a, 'bump> Resolver<'bump> for LambdaParamResolver<'a, 'bump> {
     fn resolve_ident(
         &self,
-        ident: Ident,
-        _: &'bump Bump,
+        ident: &Ident,
+        bump: &'bump Bump,
     ) -> Result<&'bump Expr<'bump>, MirResolveError> {
-        if self.ident == ident {
+        if self.ident == *ident {
             Ok(self.expr)
         } else {
-            Err(MirResolveError::IdentUnresolvable(ident))
+            self.parent.resolve_ident(ident, bump)
         }
     }
 
