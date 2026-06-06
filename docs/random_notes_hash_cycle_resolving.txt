@@ -1,0 +1,11 @@
+cycle resolving if there's 2 intertwined cycles
+
+rec {
+	a = c; // <- resolve // step 4 (cycle resolver)
+	b = z + a; // step 3
+	c = b; // step 2
+
+	x = z;
+	y = x;
+	z = y + c;
+}
