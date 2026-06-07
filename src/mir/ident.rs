@@ -1,6 +1,8 @@
+use std::fmt::{Debug, Formatter};
+
 use rnix::ast;
 
-#[derive(PartialEq, PartialOrd, Clone, Debug)]
+#[derive(PartialEq, PartialOrd, Clone)]
 pub struct Ident {
     value: String,
     // span: TextRange,
@@ -30,5 +32,11 @@ impl From<Ident> for String {
 impl AsRef<str> for Ident {
     fn as_ref(&self) -> &str {
         &self.value
+    }
+}
+
+impl Debug for Ident {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Ident \"{}\"", self.value)
     }
 }

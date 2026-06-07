@@ -1,3 +1,5 @@
+use std::fmt::{Debug, Formatter};
+
 use bumpalo::Bump;
 use rnix::ast;
 
@@ -5,7 +7,6 @@ use crate::mir::{
     Lambda, LambdaCall, LetIn, Literal, Param, Resolve, Resolver, error::MirResolveError,
 };
 
-#[derive(Debug)]
 pub enum Expr<'bump> {
     LetIn(LetIn<'bump>),
     LambdaCall(LambdaCall<'bump>),
@@ -42,5 +43,20 @@ impl Resolve for ast::Expr {
 
             _ => todo!("Translate {:?} to Mir", self),
         })
+    }
+}
+
+impl Debug for Expr<'_> {
+    // Don't wrap the variants twice
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::LetIn(inner) => inner.fmt(f),
+            Self::LambdaCall(inner) => inner.fmt(f),
+            Self::Lambda(inner) => inner.fmt(f),
+            Self::Literal(inner) => inner.fmt(f),
+            Self::Param(inner) => inner.fmt(f),
+
+            Self::Intrinsic => write!(f, "Intrinsic"),
+        }
     }
 }
