@@ -19,7 +19,7 @@ impl<'b> Resolver<'b> for RootResolver<'b> {
         Err(MirResolveError::IdentUnresolvable(ident.clone()))
     }
 
-    fn get_param_nesting_depth(&self) -> u32 {
+    fn get_param_nesting_depth(&self) -> usize {
         0
     }
     fn get_intrinsics(&self) -> &'b Intrinsics<'b> {
@@ -49,7 +49,7 @@ impl<'a, 'bump> Resolver<'bump> for LazyMapResolver<'a, 'bump> {
         }
     }
 
-    fn get_param_nesting_depth(&self) -> u32 {
+    fn get_param_nesting_depth(&self) -> usize {
         self.parent.get_param_nesting_depth()
     }
     fn get_intrinsics(&self) -> &'bump Intrinsics<'bump> {
@@ -76,7 +76,7 @@ impl<'a, 'bump> Resolver<'bump> for LambdaParamResolver<'a, 'bump> {
         }
     }
 
-    fn get_param_nesting_depth(&self) -> u32 {
+    fn get_param_nesting_depth(&self) -> usize {
         // TODO cache this
         self.parent.get_param_nesting_depth() + 1
     }

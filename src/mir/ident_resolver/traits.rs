@@ -10,7 +10,7 @@ pub trait Resolver<'bump> {
     ) -> Result<&'bump Expr<'bump>, MirResolveError>;
 
     /// Returns how deeply nested the current lambda parameter is
-    fn get_param_nesting_depth(&self) -> u32;
+    fn get_param_nesting_depth(&self) -> usize;
     fn get_intrinsics(&self) -> &'bump Intrinsics<'bump>;
 }
 
