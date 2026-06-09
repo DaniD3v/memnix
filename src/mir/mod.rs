@@ -13,9 +13,7 @@ use bumpalo::Bump;
 use rnix::Root;
 
 use error::MirResolveError;
-use ident_resolver::{
-    LambdaParamResolver, LazyEval, LazyMapResolver, Resolve, Resolver, RootResolver,
-};
+use ident_resolver::{LambdaParamResolver, LazyMapResolver, Resolve, Resolver, RootResolver};
 
 pub fn from_root_node<'bump>(
     root: Root,

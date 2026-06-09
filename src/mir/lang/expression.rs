@@ -1,4 +1,7 @@
-use std::fmt::{Debug, Formatter};
+use std::{
+    cell::OnceCell,
+    fmt::{Debug, Formatter},
+};
 
 use bumpalo::Bump;
 use rnix::ast;
@@ -14,8 +17,11 @@ pub enum Expr<'bump> {
     Literal(Literal),
 
     Param(Param),
-
     Intrinsic,
+
+    /// This expression is cyclic and was thus deffered.
+    /// It should be valid once the owning resolve call is finished.
+    Deferred(OnceCell<&'bump Self>),
 }
 
 impl Resolve for ast::Expr {
@@ -57,6 +63,7 @@ impl Debug for Expr<'_> {
             Self::Param(inner) => inner.fmt(f),
 
             Self::Intrinsic => write!(f, "Intrinsic"),
+            Self::Deferred(inner) => write!(f, "Deferred {:?}", inner),
         }
     }
 }

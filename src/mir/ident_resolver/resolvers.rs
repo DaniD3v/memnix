@@ -1,11 +1,8 @@
 use std::collections::BTreeMap;
 
 use bumpalo::Bump;
-use rnix::ast;
 
-use crate::mir::{Expr, Ident, error::MirResolveError, lang::Intrinsics};
-
-use super::{LazyEval, Resolver};
+use crate::mir::{Expr, Ident, error::MirResolveError, ident_resolver::Resolver, lang::Intrinsics};
 
 pub struct RootResolver<'bump>(&'bump Intrinsics<'bump>);
 impl<'bump> RootResolver<'bump> {
@@ -28,7 +25,7 @@ impl<'b> Resolver<'b> for RootResolver<'b> {
 }
 
 pub struct LazyMapResolver<'a, 'bump> {
-    pub bindings: &'a BTreeMap<String, LazyEval<'bump, ast::Expr>>,
+    pub bindings: &'a BTreeMap<String, &'bump Expr<'bump>>,
     // Note: dyn is required as infinite resolver chains have to be possible
     pub parent: &'a dyn Resolver<'bump>,
 }
@@ -38,13 +35,11 @@ impl<'a, 'bump> Resolver<'bump> for LazyMapResolver<'a, 'bump> {
         ident: &Ident,
         bump: &'bump Bump,
     ) -> Result<&'bump Expr<'bump>, MirResolveError> {
-        match self
-            .bindings
-            .get(ident.as_ref())
-            .map(|lazy| lazy.resolve(self, bump))
-            .transpose()?
-        {
-            Some(found) => Ok(found),
+        match self.bindings.get(ident.as_ref()) {
+            Some(&found) => Ok(match found {
+                Expr::Deferred(cell) => cell.get().copied().unwrap_or(found),
+                _ => found,
+            }),
             None => self.parent.resolve_ident(ident, bump),
         }
     }
