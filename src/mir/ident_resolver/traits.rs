@@ -1,6 +1,6 @@
 use bumpalo::Bump;
 
-use crate::mir::{Expr, Ident, error::MirResolveError, lang::Intrinsics};
+use crate::mir::{Expr, Ident, error::MirResolveError, lang::Builtins};
 
 /// Ast type that can be resolved to a Mir type
 pub trait Resolve: Sized {
@@ -21,7 +21,7 @@ pub trait Resolver<'bump> {
 
     /// Returns how deeply nested the current lambda parameter is
     fn get_param_nesting_depth(&self) -> usize;
-    fn get_intrinsics(&self) -> &'bump Intrinsics<'bump>;
+    fn get_builtins(&self) -> &'bump Builtins<'bump>;
 }
 
 impl<'b, T: Resolver<'b>> Resolver<'b> for &T {
@@ -35,7 +35,7 @@ impl<'b, T: Resolver<'b>> Resolver<'b> for &T {
     fn get_param_nesting_depth(&self) -> usize {
         (*self).get_param_nesting_depth()
     }
-    fn get_intrinsics(&self) -> &'b Intrinsics<'b> {
-        (*self).get_intrinsics()
+    fn get_builtins(&self) -> &'b Builtins<'b> {
+        (*self).get_builtins()
     }
 }

@@ -11,13 +11,13 @@ impl Resolve for BinOp {
         bump: &'bump bumpalo::Bump,
     ) -> Result<LambdaCall<'bump>, MirResolveError> {
         let operator_kind = self.operator().unwrap();
-        let intrinsics = resolver.get_intrinsics();
+        let builtins = resolver.get_builtins();
 
         let lhs = self.lhs().unwrap().resolve(resolver, bump)?;
         let rhs = self.rhs().unwrap().resolve(resolver, bump)?;
 
         let lambda = match operator_kind {
-            rnix::ast::BinOpKind::LessOrEq => intrinsics.less_or_eq(),
+            rnix::ast::BinOpKind::LessOrEq => builtins.less_or_eq(),
 
             _ => todo!("Translate {:?} BinOp to Mir", operator_kind),
         };

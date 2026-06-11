@@ -8,6 +8,7 @@ use rnix::ast;
 
 use crate::mir::{
     Lambda, LambdaCall, LetIn, Literal, Param, Resolve, Resolver, error::MirResolveError,
+    lang::intrinsics::Intrinsic,
 };
 
 pub enum Expr<'bump> {
@@ -17,7 +18,7 @@ pub enum Expr<'bump> {
     Literal(Literal),
 
     Param(Param),
-    Intrinsic,
+    Intrinsic(Intrinsic),
 
     /// This expression is cyclic and was thus deffered.
     /// It should be valid once the owning resolve call is finished.
@@ -62,7 +63,7 @@ impl Debug for Expr<'_> {
             Self::Literal(inner) => inner.fmt(f),
             Self::Param(inner) => inner.fmt(f),
 
-            Self::Intrinsic => write!(f, "Intrinsic"),
+            Self::Intrinsic(inner) => write!(f, "Intrinsic \"{:?}\"", inner),
             Self::Deferred(inner) => write!(f, "Deferred {:?}", inner),
         }
     }

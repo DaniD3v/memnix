@@ -2,12 +2,12 @@ use std::collections::BTreeMap;
 
 use bumpalo::Bump;
 
-use crate::mir::{Expr, Ident, error::MirResolveError, ident_resolver::Resolver, lang::Intrinsics};
+use crate::mir::{Expr, Ident, error::MirResolveError, ident_resolver::Resolver, lang::Builtins};
 
-pub struct RootResolver<'bump>(&'bump Intrinsics<'bump>);
+pub struct RootResolver<'bump>(&'bump Builtins<'bump>);
 impl<'bump> RootResolver<'bump> {
     pub fn new(bump: &'bump Bump) -> Self {
-        Self(bump.alloc(Intrinsics::new(bump)))
+        Self(bump.alloc(Builtins::new(bump)))
     }
 }
 
@@ -19,7 +19,7 @@ impl<'b> Resolver<'b> for RootResolver<'b> {
     fn get_param_nesting_depth(&self) -> usize {
         0
     }
-    fn get_intrinsics(&self) -> &'b Intrinsics<'b> {
+    fn get_builtins(&self) -> &'b Builtins<'b> {
         self.0
     }
 }
@@ -47,8 +47,8 @@ impl<'a, 'bump> Resolver<'bump> for LazyMapResolver<'a, 'bump> {
     fn get_param_nesting_depth(&self) -> usize {
         self.parent.get_param_nesting_depth()
     }
-    fn get_intrinsics(&self) -> &'bump Intrinsics<'bump> {
-        self.parent.get_intrinsics()
+    fn get_builtins(&self) -> &'bump Builtins<'bump> {
+        self.parent.get_builtins()
     }
 }
 
@@ -75,7 +75,7 @@ impl<'a, 'bump> Resolver<'bump> for LambdaParamResolver<'a, 'bump> {
         // TODO cache this
         self.parent.get_param_nesting_depth() + 1
     }
-    fn get_intrinsics(&self) -> &'bump Intrinsics<'bump> {
-        self.parent.get_intrinsics()
+    fn get_builtins(&self) -> &'bump Builtins<'bump> {
+        self.parent.get_builtins()
     }
 }

@@ -3,6 +3,7 @@ use rnix::ast;
 
 use crate::mir::{
     Expr, Ident, LambdaParamResolver, Param, Resolve, Resolver, error::MirResolveError,
+    lang::intrinsics::Intrinsic,
 };
 
 #[derive(Debug)]
@@ -14,15 +15,29 @@ pub struct Lambda<'bump> {
 
 impl<'bump> Lambda<'bump> {
     /// Creates a Lambda wrapping an Intrinsic with the parameter names in `params`.
-    pub fn intrinsic_with_params(params: &[&str], bump: &'bump Bump) -> Self {
+    pub fn builtin_with_params(intrinsic: Intrinsic, params: &[&str], bump: &'bump Bump) -> Self {
+        Self::builtin_at_depth(intrinsic, params, 0, bump)
+    }
+
+    fn builtin_at_depth(
+        intrinsic: Intrinsic,
+        params: &[&str],
+        depth: usize,
+        bump: &'bump Bump,
+    ) -> Self {
         assert!(!params.is_empty());
 
         Self {
             param: Ident::new(params[0].to_owned()),
             body: bump.alloc(if params.len() == 1 {
-                Expr::Intrinsic
+                Expr::Intrinsic(intrinsic)
             } else {
-                Expr::Lambda(Self::intrinsic_with_params(&params[1..], bump))
+                Expr::Lambda(Self::builtin_at_depth(
+                    intrinsic,
+                    &params[1..],
+                    depth + 1,
+                    bump,
+                ))
             }),
         }
     }

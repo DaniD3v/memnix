@@ -19,13 +19,12 @@ impl Resolve for IfElse {
     ) -> Result<LambdaCall<'bump>, MirResolveError> {
         let condition = self.condition().unwrap().resolve(resolver, bump)?;
 
-        // TODO: cookaval deadlock here
-        let then_call = self.body().unwrap().resolve(resolver, bump)?;
-        let else_call = self.else_body().unwrap().resolve(resolver, bump)?;
+        let then_expr = self.body().unwrap().resolve(resolver, bump)?;
+        let else_expr = self.else_body().unwrap().resolve(resolver, bump)?;
 
         Ok(LambdaCall::new_curried(
-            resolver.get_intrinsics().if_else(),
-            &[condition, then_call, else_call],
+            resolver.get_builtins().if_else(),
+            &[condition, then_expr, else_expr],
             bump,
         ))
     }

@@ -9,7 +9,7 @@ mod literal;
 mod param;
 
 pub use expression::Expr;
-pub use intrinsics::Intrinsics;
+pub use intrinsics::Builtins;
 pub use lambda::Lambda;
 pub use lambda_call::LambdaCall;
 pub use let_in::LetIn;

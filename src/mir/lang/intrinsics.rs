@@ -6,21 +6,29 @@ use crate::mir::{Expr, Lambda};
 /// This makes it impossible to construct a LazyLock which holds Intrinsics.
 ///
 /// As a "temporary" workaround, Intrinsics is a struct
-pub struct Intrinsics<'bump> {
+pub struct Builtins<'bump> {
     if_else: &'bump Expr<'bump>,
     less_or_eq: &'bump Expr<'bump>,
 }
 
-impl<'b> Intrinsics<'b> {
+#[derive(Copy, Clone, Debug)]
+pub enum Intrinsic {
+    IfElse,
+    LessOrEq,
+}
+
+impl<'b> Builtins<'b> {
     pub fn new(bump: &'b Bump) -> Self {
-        Intrinsics {
-            if_else: bump.alloc(Expr::Lambda(Lambda::intrinsic_with_params(
-                &["condition", "then_call", "else_call"],
+        Builtins {
+            if_else: bump.alloc(Expr::Lambda(Lambda::builtin_with_params(
+                Intrinsic::IfElse,
+                &["condition", "then_expr", "else_expr"],
                 bump,
             ))),
 
             // TODO: less_or_eq can be generated from `less`, `equals` and `and`
-            less_or_eq: bump.alloc(Expr::Lambda(Lambda::intrinsic_with_params(
+            less_or_eq: bump.alloc(Expr::Lambda(Lambda::builtin_with_params(
+                Intrinsic::LessOrEq,
                 &["l", "r"],
                 bump,
             ))),
