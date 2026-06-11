@@ -37,4 +37,4 @@ error: dynamic attribute 'bb' already defined at «string»:1:7
             1|  rec {bb = "b"; ${bb + bb} = 2;}
              |                 ^
 
-this behavior is fucking insane
+this behavior is insane
