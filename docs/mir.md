@@ -21,7 +21,7 @@ Requirements:
 - the `if_else` expression should be desugared to a simple builtin.
 - the binary operators `<=`, `+` must be resolved to builtins.
 
-Output (although with a simplified view of intrinsics):
+Output (although with a simplified view of builtins):
 
 ```
 LetIn {
@@ -74,7 +74,7 @@ There are 2 traits relevant to ident resolving:
 - `Resolve`: An Ast type that can be resolved to a Mir type with a `Resolver`
 - `Resolver`: Scope-Specific Resolver that turns idents into references
 
-In practice `Resolver`s always store their parent resolver.  
+In practice, all `Resolver`s except for the root resolver always store their parent resolver.  
 If a scope cannot resolve an ident directly the parent resolver is invoked.  
 
 # Translation
