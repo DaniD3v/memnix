@@ -64,7 +64,7 @@ impl Debug for Expr<'_> {
             Self::Param(inner) => inner.fmt(f),
 
             Self::Intrinsic(inner) => write!(f, "Intrinsic \"{:?}\"", inner),
-            Self::Deferred(inner) => write!(f, "Deferred {:?}", inner),
+            Self::Deferred(inner) => write!(f, "Deferred -> @{:p}", inner),
         }
     }
 }
