@@ -9,7 +9,7 @@ use crate::mir::{
 #[derive(Debug)]
 pub struct Lambda<'bump> {
     // theres goofy `{}` desugars too but lets ignore those for now
-    param: Ident,
+    param: Param,
     body: &'bump Expr<'bump>,
 }
 
@@ -28,7 +28,7 @@ impl<'bump> Lambda<'bump> {
         assert!(!params.is_empty());
 
         Self {
-            param: Ident::new(params[0].to_owned()),
+            param: Param::at_depth(depth),
             body: bump.alloc(if params.len() == 1 {
                 Expr::Intrinsic(intrinsic)
             } else {
@@ -41,6 +41,10 @@ impl<'bump> Lambda<'bump> {
             }),
         }
     }
+
+    pub fn depth(&self) -> usize {
+        self.param.nesting_depth()
+    }
 }
 
 impl Resolve for ast::Lambda {
@@ -51,19 +55,22 @@ impl Resolve for ast::Lambda {
         resolver: &impl Resolver<'bump>,
         bump: &'bump Bump,
     ) -> Result<Lambda<'bump>, MirResolveError> {
-        let param: Ident = match self.param().unwrap() {
+        let param_name: Ident = match self.param().unwrap() {
             ast::Param::IdentParam(ident) => ident.ident().unwrap(),
             ast::Param::Pattern(_) => todo!("oje"),
         }
         .into();
 
-        let resolver = LambdaParamResolver {
-            ident: param.clone(),
+        let body_resolver = LambdaParamResolver {
+            ident: param_name.clone(),
             expr: bump.alloc(Expr::Param(Param::new(resolver))),
             parent: resolver,
         };
-        let body = self.body().unwrap().resolve(&resolver, bump)?;
+        let body = self.body().unwrap().resolve(&body_resolver, bump)?;
 
-        Ok(Lambda { param, body })
+        Ok(Lambda {
+            param: Param::new(&resolver),
+            body,
+        })
     }
 }
