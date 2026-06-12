@@ -1,4 +1,5 @@
 use bumpalo::Bump;
+use getset::Getters;
 
 use crate::mir::{Expr, Lambda};
 
@@ -6,15 +7,21 @@ use crate::mir::{Expr, Lambda};
 /// This makes it impossible to construct a LazyLock which holds Intrinsics.
 ///
 /// As a "temporary" workaround, Intrinsics is a struct
+#[derive(Getters)]
+#[getset(get = "pub")]
 pub struct Builtins<'bump> {
     if_else: &'bump Expr<'bump>,
     less_or_eq: &'bump Expr<'bump>,
+    add: &'bump Expr<'bump>,
+    subtract: &'bump Expr<'bump>,
 }
 
 #[derive(Copy, Clone, Debug)]
 pub enum Intrinsic {
     IfElse,
     LessOrEq,
+    Add,
+    Subtract,
 }
 
 impl<'b> Builtins<'b> {
@@ -32,16 +39,18 @@ impl<'b> Builtins<'b> {
                 &["l", "r"],
                 bump,
             ))),
+
+            add: bump.alloc(Expr::Lambda(Lambda::builtin_with_params(
+                Intrinsic::Add,
+                &["l", "r"],
+                bump,
+            ))),
+
+            subtract: bump.alloc(Expr::Lambda(Lambda::builtin_with_params(
+                Intrinsic::Subtract,
+                &["l", "r"],
+                bump,
+            ))),
         }
     }
-
-    pub fn if_else(&self) -> &'b Expr<'b> {
-        self.if_else
-    }
-
-    pub fn less_or_eq(&self) -> &'b Expr<'b> {
-        self.less_or_eq
-    }
 }
-
-// pub static IF: LazyLock<Lambda> = LazyLock::new(|| Lambda::intrinsic_with_params_leaking(&[]));

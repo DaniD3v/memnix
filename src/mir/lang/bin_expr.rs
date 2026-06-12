@@ -18,6 +18,8 @@ impl Resolve for BinOp {
 
         let lambda = match operator_kind {
             rnix::ast::BinOpKind::LessOrEq => builtins.less_or_eq(),
+            rnix::ast::BinOpKind::Sub => builtins.subtract(),
+            rnix::ast::BinOpKind::Add => builtins.add(),
 
             _ => todo!("Translate {:?} BinOp to Mir", operator_kind),
         };

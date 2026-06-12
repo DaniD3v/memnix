@@ -2,7 +2,7 @@ use getset::CopyGetters;
 
 use crate::mir::ident_resolver::Resolver;
 
-#[derive(Debug, CopyGetters)]
+#[derive(Clone, CopyGetters, Debug)]
 pub struct Param {
     /// Every param can be uniquely identified by
     /// it's nesting depth
@@ -15,5 +15,9 @@ impl Param {
         Self {
             nesting_depth: resolver.get_param_nesting_depth(),
         }
+    }
+
+    pub fn at_depth(nesting_depth: usize) -> Self {
+        Self { nesting_depth }
     }
 }
