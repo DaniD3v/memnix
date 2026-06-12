@@ -5,5 +5,6 @@
   in
   y: a <= y
 )
-  5
+  # RuntimeLambda []
+  5 # RuntimeLambda [5]
   5
