@@ -1,0 +1,8 @@
+On the 4 large issues — let me know how you want to handle them:
+
+1. LazyEval::resolve — should handle EvalState::Mir(v) => { *this = EvalState::Mir(v); Ok(v) } for cache hits, and Evaluating probably needs a new CyclicDependency error
+variant.
+2. LazyMapResolver::resolve_ident — should fall through to self.parent.resolve_ident(ident, bump) on miss rather than returning Err immediately.
+3. new_curried — needs left-associative build: (f a) b not f (a b).
+4. if_else.rs — needs to resolve and pass then/else branches as args.
+
