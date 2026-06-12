@@ -1,4 +1,5 @@
 use bumpalo::Bump;
+use getset::CopyGetters;
 use rnix::ast;
 
 use crate::mir::{
@@ -6,10 +7,11 @@ use crate::mir::{
     lang::intrinsics::Intrinsic,
 };
 
-#[derive(Debug)]
+#[derive(Debug, CopyGetters)]
 pub struct Lambda<'bump> {
     // theres goofy `{}` desugars too but lets ignore those for now
     param: Param,
+    #[getset(get_copy = "pub")]
     body: &'bump Expr<'bump>,
 }
 

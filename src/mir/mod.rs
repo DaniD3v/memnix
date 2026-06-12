@@ -7,7 +7,7 @@ mod ident_resolver;
 mod lang;
 
 pub use ident::Ident;
-pub use lang::{Expr, Lambda, LambdaCall, LetIn, Literal, Param};
+pub use lang::{Expr, Intrinsic, Lambda, LambdaCall, LetIn, Literal, Param};
 
 use bumpalo::Bump;
 use rnix::Root;

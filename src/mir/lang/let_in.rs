@@ -1,14 +1,16 @@
 use std::{cell::OnceCell, collections::BTreeMap};
 
 use bumpalo::Bump;
+use getset::CopyGetters;
 use rnix::ast::{self, HasEntry};
 
 use crate::mir::{Expr, Ident, LazyMapResolver, Resolve, Resolver, error::MirResolveError};
 
-#[derive(Debug)]
+#[derive(Debug, CopyGetters)]
 pub struct LetIn<'bump> {
     bindings: BTreeMap<String, &'bump Expr<'bump>>,
-    expression: &'bump Expr<'bump>,
+    #[getset(get_copy = "pub")]
+    body: &'bump Expr<'bump>,
 }
 
 impl Resolve for ast::LetIn {
@@ -44,7 +46,7 @@ impl Resolve for ast::LetIn {
         let expression = self.body().unwrap().resolve(&resolver, bump)?;
         Ok(LetIn {
             bindings,
-            expression,
+            body: expression,
         })
     }
 }
