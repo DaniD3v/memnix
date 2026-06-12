@@ -1,9 +1,11 @@
 use bumpalo::Bump;
+use getset::CopyGetters;
 use rnix::ast;
 
 use crate::mir::{Expr, Resolve, Resolver, error::MirResolveError};
 
-#[derive(Debug)]
+#[derive(Debug, CopyGetters)]
+#[getset(get_copy = "pub")]
 pub struct LambdaCall<'bump> {
     lambda: &'bump Expr<'bump>,
     argument: &'bump Expr<'bump>,
@@ -20,19 +22,25 @@ impl<'bump> LambdaCall<'bump> {
     ) -> Self {
         assert!(!args.is_empty());
 
-        LambdaCall {
-            lambda,
-            argument: if args.len() == 1 {
-                args[0]
-            } else {
-                let [lambda, args @ ..] = args else {
-                    unreachable!("args cannot be empty")
-                };
+        if args.len() == 1 {
+            LambdaCall {
+                lambda,
+                argument: args[0],
+            }
+        } else {
+            let (argument, curried_args) = args.split_last().expect("args cannot be empty");
+            // The lambda that is to the left of this lambda.
+            // e.g. `builtins.add 1` in `(builtins.add 1) 2`
+            let inner = bump.alloc(Expr::LambdaCall(LambdaCall::new_curried(
+                lambda,
+                curried_args,
+                bump,
+            )));
 
-                bump.alloc(Expr::LambdaCall(LambdaCall::new_curried(
-                    lambda, args, bump,
-                )))
-            },
+            LambdaCall {
+                lambda: inner,
+                argument,
+            }
         }
     }
 }
