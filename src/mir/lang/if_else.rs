@@ -1,7 +1,7 @@
 use bumpalo::Bump;
 use rnix::ast::IfElse;
 
-use crate::mir::{LambdaCall, Resolve, Resolver, error::MirResolveError};
+use crate::mir::{Intrinsic, LambdaCall, Resolve, Resolver, error::MirResolveError};
 
 impl Resolve for IfElse {
     type Target<'a> = LambdaCall<'a>;
@@ -23,7 +23,7 @@ impl Resolve for IfElse {
         let else_expr = self.else_body().unwrap().resolve(resolver, bump)?;
 
         Ok(LambdaCall::new_curried(
-            resolver.get_builtins().if_else(),
+            bump.alloc(Intrinsic::IfElse.get_lambda()),
             &[condition, then_expr, else_expr],
             bump,
         ))

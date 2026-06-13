@@ -1,13 +1,17 @@
 #![allow(dead_code)]
 //! This module wraps the primitive rnix-ast into a more high-level format
 
+mod builtins;
 mod error;
 mod ident;
 mod ident_resolver;
+mod lambda;
 mod lang;
 
+pub use builtins::Intrinsic;
 pub use ident::Ident;
-pub use lang::{Expr, Intrinsic, Lambda, LambdaCall, LetIn, Literal, Param};
+pub use lambda::Lambda;
+pub use lang::{Expr, LambdaCall, LetIn, Literal, Param};
 
 use bumpalo::Bump;
 use rnix::Root;
@@ -19,7 +23,7 @@ pub fn from_root_node<'bump>(
     root: Root,
     bump: &'bump Bump,
 ) -> Result<&'bump Expr<'bump>, MirResolveError> {
-    let root_resolver = RootResolver::new(bump);
+    let root_resolver = RootResolver;
 
     root.expr()
         .expect("parsing errors")
