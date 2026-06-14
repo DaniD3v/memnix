@@ -10,6 +10,5 @@ mod param;
 pub use expression::Expr;
 pub use lambda_call::LambdaCall;
 pub use lang_lambda::LangLambda;
-pub use let_in::LetIn;
 pub use literal::Literal;
 pub use param::Param;

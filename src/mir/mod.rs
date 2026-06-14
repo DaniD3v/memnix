@@ -11,7 +11,7 @@ mod lang;
 pub use builtins::Intrinsic;
 pub use ident::Ident;
 pub use lambda::Lambda;
-pub use lang::{Expr, LambdaCall, LetIn, Literal, Param};
+pub use lang::{Expr, LambdaCall, Literal, Param};
 
 use bumpalo::Bump;
 use rnix::Root;

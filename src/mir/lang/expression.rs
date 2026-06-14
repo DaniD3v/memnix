@@ -6,12 +6,9 @@ use std::{
 use bumpalo::Bump;
 use rnix::ast;
 
-use crate::mir::{
-    Lambda, LambdaCall, LetIn, Literal, Param, Resolve, Resolver, error::MirResolveError,
-};
+use crate::mir::{Lambda, LambdaCall, Literal, Param, Resolve, Resolver, error::MirResolveError};
 
 pub enum Expr<'bump> {
-    LetIn(LetIn<'bump>),
     LambdaCall(LambdaCall<'bump>),
     Lambda(Lambda<'bump>),
     Literal(Literal),
@@ -31,7 +28,6 @@ impl Resolve for ast::Expr {
         bump: &'bump Bump,
     ) -> Result<&'bump Expr<'bump>, MirResolveError> {
         Ok(match self {
-            ast::Expr::LetIn(let_in) => bump.alloc(Expr::LetIn(let_in.resolve(resolver, bump)?)),
             ast::Expr::Apply(apply) => bump.alloc(Expr::LambdaCall(apply.resolve(resolver, bump)?)),
             ast::Expr::Lambda(lambda) => bump.alloc(Expr::Lambda(lambda.resolve(resolver, bump)?)),
             ast::Expr::Literal(lit) => bump.alloc(Expr::Literal(lit.kind().into())),
@@ -44,6 +40,7 @@ impl Resolve for ast::Expr {
             }
             ast::Expr::Paren(paren) => paren.expr().unwrap().resolve(resolver, bump)?,
             ast::Expr::Ident(ident) => resolver.resolve_ident(&ident.into(), bump)?,
+            ast::Expr::LetIn(let_in) => let_in.resolve(resolver, bump)?,
 
             _ => todo!("Translate {:?} to Mir", self),
         })
@@ -54,7 +51,6 @@ impl Debug for Expr<'_> {
     // Don't wrap the variants twice
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::LetIn(inner) => inner.fmt(f),
             Self::LambdaCall(inner) => inner.fmt(f),
             Self::Lambda(inner) => inner.fmt(f),
             Self::Literal(inner) => inner.fmt(f),
