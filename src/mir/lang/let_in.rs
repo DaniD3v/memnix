@@ -1,16 +1,18 @@
 use std::{cell::OnceCell, collections::BTreeMap};
 
 use bumpalo::Bump;
-use getset::CopyGetters;
+use getset::Getters;
 use rnix::ast::{self, HasEntry};
 
 use crate::mir::{Expr, Ident, LazyMapResolver, Resolve, Resolver, error::MirResolveError};
 
-#[derive(Debug, CopyGetters)]
-pub struct LetIn<'bump> {
-    bindings: BTreeMap<String, &'bump Expr<'bump>>,
-    #[getset(get_copy = "pub")]
-    body: &'bump Expr<'bump>,
+pub type LetIn<'bump> = GenericLetIn<&'bump Expr<'bump>>;
+
+#[derive(Debug, Getters)]
+pub struct GenericLetIn<E> {
+    bindings: BTreeMap<String, E>,
+    #[getset(get = "pub")]
+    body: E,
 }
 
 impl Resolve for ast::LetIn {

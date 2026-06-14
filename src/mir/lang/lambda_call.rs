@@ -1,14 +1,16 @@
 use bumpalo::Bump;
-use getset::CopyGetters;
+use getset::Getters;
 use rnix::ast;
 
 use crate::mir::{Expr, Resolve, Resolver, error::MirResolveError};
 
-#[derive(Debug, CopyGetters)]
-#[getset(get_copy = "pub")]
-pub struct LambdaCall<'bump> {
-    lambda: &'bump Expr<'bump>,
-    argument: &'bump Expr<'bump>,
+pub type LambdaCall<'bump> = GenericLambdaCall<&'bump Expr<'bump>>;
+
+#[derive(Debug, Getters)]
+#[getset(get = "pub")]
+pub struct GenericLambdaCall<E> {
+    lambda: E,
+    argument: E,
 }
 
 impl<'bump> LambdaCall<'bump> {
