@@ -3,5 +3,5 @@
 mod builtin_lambda;
 mod intrinsics;
 
-pub use builtin_lambda::BuiltinLambda;
+pub use builtin_lambda::{BuiltinLambda, BuiltinLambdaBody};
 pub use intrinsics::Intrinsic;

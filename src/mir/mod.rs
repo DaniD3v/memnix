@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 //! This module wraps the primitive rnix-ast into a more high-level format
 
-mod builtins;
+pub mod builtins;
 mod error;
 mod ident;
 mod ident_resolver;

@@ -1,17 +1,12 @@
 use bumpalo::Bump;
-use getset::Getters;
 use rnix::ast;
 
-use crate::mir::{Expr, Resolve, Resolver, error::MirResolveError};
+use crate::{
+    generic_lang::GenericLambdaCall,
+    mir::{Expr, Resolve, Resolver, error::MirResolveError},
+};
 
 pub type LambdaCall<'bump> = GenericLambdaCall<&'bump Expr<'bump>>;
-
-#[derive(Debug, Getters)]
-#[getset(get = "pub")]
-pub struct GenericLambdaCall<E> {
-    lambda: E,
-    argument: E,
-}
 
 impl<'bump> LambdaCall<'bump> {
     /// In nix lambas only take one input parameter.
@@ -25,10 +20,7 @@ impl<'bump> LambdaCall<'bump> {
         assert!(!args.is_empty());
 
         if args.len() == 1 {
-            LambdaCall {
-                lambda,
-                argument: args[0],
-            }
+            LambdaCall::new(lambda, args[0])
         } else {
             let (argument, curried_args) = args.split_last().expect("args cannot be empty");
             // The lambda that is to the left of this lambda.
@@ -39,10 +31,7 @@ impl<'bump> LambdaCall<'bump> {
                 bump,
             )));
 
-            LambdaCall {
-                lambda: inner,
-                argument,
-            }
+            LambdaCall::new(inner, argument)
         }
     }
 }
@@ -58,6 +47,6 @@ impl Resolve for ast::Apply {
         let lambda = self.lambda().unwrap().resolve(resolver, bump)?;
         let argument = self.argument().unwrap().resolve(resolver, bump)?;
 
-        Ok(LambdaCall { lambda, argument })
+        Ok(LambdaCall::new(lambda, argument))
     }
 }

@@ -1,6 +1,9 @@
-use crate::mir::{Param, builtins::intrinsics::Intrinsic, lambda::RawLambda};
+use crate::{
+    generic_lang::GenericLambda,
+    mir::{Param, builtins::intrinsics::Intrinsic},
+};
 
-pub type BuiltinLambda = RawLambda<BuiltinLambdaBody>;
+pub type BuiltinLambda = GenericLambda<BuiltinLambdaBody>;
 
 impl BuiltinLambda {
     /// Creates a Lambda wrapping an Intrinsic with the parameter names in `params`.
@@ -11,9 +14,9 @@ impl BuiltinLambda {
     fn at_depth(intrinsic: Intrinsic, params: &[&str], depth: usize) -> Self {
         assert!(!params.is_empty());
 
-        Self {
-            param: Param::at_depth(depth),
-            body: if params.len() == 1 {
+        Self::new(
+            Param::at_depth(depth),
+            if params.len() == 1 {
                 BuiltinLambdaBody::Intrinsic(intrinsic)
             } else {
                 BuiltinLambdaBody::Lambda(Box::new(Self::at_depth(
@@ -22,7 +25,7 @@ impl BuiltinLambda {
                     depth + 1,
                 )))
             },
-        }
+        )
     }
 }
 

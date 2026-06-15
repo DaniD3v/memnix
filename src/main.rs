@@ -5,6 +5,7 @@ use clap::Parser;
 
 use crate::mir::from_root_node;
 
+pub mod generic_lang;
 pub mod mir;
 pub mod object_hash;
 

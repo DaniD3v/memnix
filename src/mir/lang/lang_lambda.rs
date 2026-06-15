@@ -1,12 +1,14 @@
 use bumpalo::Bump;
 use rnix::ast;
 
-use crate::mir::{
-    Expr, Ident, Lambda, LambdaParamResolver, Param, Resolve, Resolver, error::MirResolveError,
-    lambda::RawLambda,
+use crate::{
+    generic_lang::GenericLambda,
+    mir::{
+        Expr, Ident, Lambda, LambdaParamResolver, Param, Resolve, Resolver, error::MirResolveError,
+    },
 };
 
-pub type LangLambda<'bump> = RawLambda<&'bump Expr<'bump>>;
+pub type LangLambda<'bump> = GenericLambda<&'bump Expr<'bump>>;
 
 impl Resolve for ast::Lambda {
     type Target<'bump> = Lambda<'bump>;
@@ -29,9 +31,6 @@ impl Resolve for ast::Lambda {
         };
         let body = self.body().unwrap().resolve(&body_resolver, bump)?;
 
-        Ok(Lambda::Lang(LangLambda {
-            param: Param::new(&resolver),
-            body,
-        }))
+        Ok(Lambda::Lang(LangLambda::new(Param::new(&resolver), body)))
     }
 }
