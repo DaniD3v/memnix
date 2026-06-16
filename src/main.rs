@@ -3,8 +3,9 @@ use std::{fs, path::PathBuf};
 use bumpalo::Bump;
 use clap::Parser;
 
-use crate::mir::from_root_node;
+use crate::{eval::Eval, mir::from_root_node};
 
+mod eval;
 pub mod generic_lang;
 pub mod mir;
 pub mod object_hash;
@@ -25,7 +26,9 @@ fn main() {
     println!("Ast: {:#?}", root);
 
     let bump = Bump::new();
-
-    let expr = from_root_node(root, &bump);
+    let expr = from_root_node(root, &bump).unwrap();
     println!("Mir: {:#?}", expr);
+
+    let eval = expr.eval(&[]).eval_thunk();
+    println!("Eval: {:#?}", eval)
 }

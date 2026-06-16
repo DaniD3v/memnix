@@ -24,7 +24,7 @@ impl Intrinsic {
 
     /// parameter names of the function called
     /// the specific names are mainly for documentation, the count of parameters is semantically important
-    fn get_params(&self) -> &'static [&'static str] {
+    const fn get_params(&self) -> &'static [&'static str] {
         match self {
             Self::IfElse => &["condition", "then_expr", "else_expr"],
             Self::LessOrEq | Self::Add | Self::Subtract => &["l", "r"],
