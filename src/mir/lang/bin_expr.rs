@@ -23,11 +23,6 @@ impl Resolve for BinOp {
             _ => todo!("Translate {:?} BinOp to Mir", operator_kind),
         };
 
-        Ok(LambdaCall::new_curried(
-            // TODO: re-allocating built-ins all the time is pretty bad
-            bump.alloc(lambda),
-            &[lhs, rhs],
-            bump,
-        ))
+        Ok(LambdaCall::new_curried(lambda, &[lhs, rhs], bump))
     }
 }
