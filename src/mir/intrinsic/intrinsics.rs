@@ -14,10 +14,10 @@ pub enum Intrinsic {
 
 impl Intrinsic {
     pub fn get_lambda<'b>(self, resolver: impl Resolver<'b>) -> &'b Expr<'b> {
-        &resolver.get_builtins().get(self)
+        resolver.get_builtins().get(self)
     }
 
-    pub(super) fn new_wrapped<'b>(self, bump: &Bump) -> &Expr<'_> {
+    pub(super) fn new_wrapped(self, bump: &Bump) -> &Expr<'_> {
         let params = self.get_params();
         Lambda::with_params(self, params, bump)
     }
