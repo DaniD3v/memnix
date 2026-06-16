@@ -1,6 +1,6 @@
 use rnix::ast::BinOp;
 
-use crate::mir::{LambdaCall, Resolve, Resolver, builtins::Intrinsic, error::MirResolveError};
+use crate::mir::{Intrinsic, LambdaCall, Resolve, Resolver, error::MirResolveError};
 
 impl Resolve for BinOp {
     type Target<'a> = LambdaCall<'a>;
@@ -16,9 +16,9 @@ impl Resolve for BinOp {
         let rhs = self.rhs().unwrap().resolve(resolver, bump)?;
 
         let lambda = match operator_kind {
-            rnix::ast::BinOpKind::LessOrEq => Intrinsic::LessOrEq.get_lambda(),
-            rnix::ast::BinOpKind::Sub => Intrinsic::Subtract.get_lambda(),
-            rnix::ast::BinOpKind::Add => Intrinsic::Add.get_lambda(),
+            rnix::ast::BinOpKind::LessOrEq => Intrinsic::LessOrEq.get_lambda(resolver),
+            rnix::ast::BinOpKind::Sub => Intrinsic::Subtract.get_lambda(resolver),
+            rnix::ast::BinOpKind::Add => Intrinsic::Add.get_lambda(resolver),
 
             _ => todo!("Translate {:?} BinOp to Mir", operator_kind),
         };

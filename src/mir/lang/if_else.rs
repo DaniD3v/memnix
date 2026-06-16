@@ -23,7 +23,7 @@ impl Resolve for IfElse {
         let else_expr = self.else_body().unwrap().resolve(resolver, bump)?;
 
         Ok(LambdaCall::new_curried(
-            bump.alloc(Intrinsic::IfElse.get_lambda()),
+            bump.alloc(Intrinsic::IfElse.get_lambda(resolver)),
             &[condition, then_expr, else_expr],
             bump,
         ))

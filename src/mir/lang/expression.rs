@@ -6,7 +6,9 @@ use std::{
 use bumpalo::Bump;
 use rnix::ast;
 
-use crate::mir::{Lambda, LambdaCall, Literal, Param, Resolve, Resolver, error::MirResolveError};
+use crate::mir::{
+    Intrinsic, Lambda, LambdaCall, Literal, Param, Resolve, Resolver, error::MirResolveError,
+};
 
 pub enum Expr<'bump> {
     LambdaCall(LambdaCall<'bump>),
@@ -14,6 +16,8 @@ pub enum Expr<'bump> {
     Literal(Literal),
 
     Param(Param),
+    Intrinsic(Intrinsic),
+
     /// This expression is cyclic and was thus deffered.
     /// It should be valid once the owning resolve call is finished.
     Deferred(OnceCell<&'bump Self>),
@@ -54,7 +58,9 @@ impl Debug for Expr<'_> {
             Self::LambdaCall(inner) => inner.fmt(f),
             Self::Lambda(inner) => inner.fmt(f),
             Self::Literal(inner) => inner.fmt(f),
+
             Self::Param(inner) => inner.fmt(f),
+            Self::Intrinsic(inner) => inner.fmt(f),
 
             Self::Deferred(inner) => write!(f, "Deferred -> @{:p}", inner),
         }

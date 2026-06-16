@@ -2,16 +2,27 @@ use std::collections::BTreeMap;
 
 use bumpalo::Bump;
 
-use crate::mir::{Expr, Ident, error::MirResolveError, ident_resolver::Resolver};
+use crate::mir::{
+    Expr, Ident, WrappedIntrinsics, error::MirResolveError, ident_resolver::Resolver,
+};
 
-pub struct RootResolver;
-impl<'b> Resolver<'b> for RootResolver {
+pub struct RootResolver<'bump>(WrappedIntrinsics<'bump>);
+impl<'b> RootResolver<'b> {
+    pub fn new(bump: &'b Bump) -> Self {
+        Self(WrappedIntrinsics::new(bump))
+    }
+}
+
+impl<'b> Resolver<'b> for RootResolver<'b> {
     fn resolve_ident(&self, ident: &Ident, _: &'b Bump) -> Result<&'b Expr<'b>, MirResolveError> {
         Err(MirResolveError::IdentUnresolvable(ident.clone()))
     }
 
     fn get_param_nesting_depth(&self) -> usize {
         0
+    }
+    fn get_builtins(&self) -> &WrappedIntrinsics<'b> {
+        &self.0
     }
 }
 
@@ -20,12 +31,12 @@ pub struct LazyMapResolver<'a, 'bump> {
     // Note: dyn is required as infinite resolver chains have to be possible
     pub parent: &'a dyn Resolver<'bump>,
 }
-impl<'a, 'bump> Resolver<'bump> for LazyMapResolver<'a, 'bump> {
+impl<'a, 'b> Resolver<'b> for LazyMapResolver<'a, 'b> {
     fn resolve_ident(
         &self,
         ident: &Ident,
-        bump: &'bump Bump,
-    ) -> Result<&'bump Expr<'bump>, MirResolveError> {
+        bump: &'b Bump,
+    ) -> Result<&'b Expr<'b>, MirResolveError> {
         match self.bindings.get(ident.as_ref()) {
             Some(&found) => Ok(match found {
                 Expr::Deferred(cell) => cell.get().copied().unwrap_or(found),
@@ -38,6 +49,9 @@ impl<'a, 'bump> Resolver<'bump> for LazyMapResolver<'a, 'bump> {
     fn get_param_nesting_depth(&self) -> usize {
         self.parent.get_param_nesting_depth()
     }
+    fn get_builtins(&self) -> &WrappedIntrinsics<'b> {
+        self.parent.get_builtins()
+    }
 }
 
 pub struct LambdaParamResolver<'a, 'bump> {
@@ -46,12 +60,12 @@ pub struct LambdaParamResolver<'a, 'bump> {
     // Note: dyn is required as infinite resolver chains have to be possible
     pub parent: &'a dyn Resolver<'bump>,
 }
-impl<'a, 'bump> Resolver<'bump> for LambdaParamResolver<'a, 'bump> {
+impl<'a, 'b> Resolver<'b> for LambdaParamResolver<'a, 'b> {
     fn resolve_ident(
         &self,
         ident: &Ident,
-        bump: &'bump Bump,
-    ) -> Result<&'bump Expr<'bump>, MirResolveError> {
+        bump: &'b Bump,
+    ) -> Result<&'b Expr<'b>, MirResolveError> {
         if self.ident == *ident {
             Ok(self.expr)
         } else {
@@ -62,5 +76,8 @@ impl<'a, 'bump> Resolver<'bump> for LambdaParamResolver<'a, 'bump> {
     fn get_param_nesting_depth(&self) -> usize {
         // TODO cache this
         self.parent.get_param_nesting_depth() + 1
+    }
+    fn get_builtins(&self) -> &WrappedIntrinsics<'b> {
+        self.parent.get_builtins()
     }
 }
