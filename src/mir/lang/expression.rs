@@ -1,4 +1,7 @@
-use std::fmt::{Debug, Formatter};
+use std::{
+    fmt::{Debug, Formatter},
+    iter,
+};
 
 use rnix::ast;
 
@@ -54,9 +57,36 @@ impl Resolve for ast::Expr {
     }
 }
 
+impl<'id> IntoIterator for &Expr<'id> {
+    type Item = ExprId<'id>;
+    type IntoIter = Box<dyn Iterator<Item = Self::Item> + 'id>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        match self {
+            Expr::LambdaCall(lambda_call) => Box::new(lambda_call.into_iter()),
+            Expr::Lambda(lambda) => Box::new(lambda.into_iter()),
+
+            _ => Box::new(iter::empty()),
+        }
+    }
+}
+
+impl<'b> PartialEq for Expr<'b> {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::LambdaCall(l), Self::LambdaCall(r)) => l == r,
+            (Self::Lambda(l), Self::Lambda(r)) => l == r,
+            (Self::Literal(l), Self::Literal(r)) => l == r,
+            (Self::Param(l), Self::Param(r)) => l == r,
+            (Self::Intrinsic(l), Self::Intrinsic(r)) => l == r,
+
+            _ => false,
+        }
+    }
+}
+
 impl<'id> DebugWith<DebugState<'id, '_>> for Expr<'id> {
     fn fmt_with(&self, with: &mut DebugState<'id, '_>, f: &mut Formatter<'_>) -> std::fmt::Result {
-        // Don't wrap the variants twice
         match self {
             Self::LambdaCall(inner) => inner.fmt_with(with, f),
             Self::Lambda(inner) => inner.fmt_with(with, f),

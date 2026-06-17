@@ -2,7 +2,7 @@ use strum::{EnumCount, EnumIter};
 
 use crate::mir::{ExprArena, ExprId, Lambda, ident_resolver::Resolver};
 
-#[derive(EnumIter, EnumCount, Copy, Clone, Debug)]
+#[derive(EnumIter, EnumCount, Copy, Clone, PartialEq, Debug)]
 #[repr(u8)]
 pub enum Intrinsic {
     IfElse,

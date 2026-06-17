@@ -1,4 +1,4 @@
-use std::fmt::Formatter;
+use std::{array, fmt::Formatter};
 
 use rnix::ast;
 
@@ -47,6 +47,24 @@ impl Resolve for ast::Apply {
         let argument = self.argument().unwrap().resolve(resolver, bump)?;
 
         Ok(LambdaCall::new(lambda, argument))
+    }
+}
+
+impl<'id> IntoIterator for &LambdaCall<'id> {
+    type Item = ExprId<'id>;
+    type IntoIter = array::IntoIter<ExprId<'id>, 2>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        [*self.lambda(), *self.argument()].into_iter()
+    }
+}
+
+// TODO: test this
+// 'b is invariant so we can only compare to
+// elements backed by the same bump allocator
+impl<'b> PartialEq for LambdaCall<'b> {
+    fn eq(&self, other: &Self) -> bool {
+        self.into_iter().eq(other)
     }
 }
 
