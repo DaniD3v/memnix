@@ -8,7 +8,7 @@ use crate::{
 
 impl<'b> Eval<'b> for LambdaCall<'b> {
     fn eval(&self, callstack: &[RuntimeValue<'b>]) -> RuntimeValue<'b> {
-        let evaluated = self.lambda().eval(callstack);
+        let evaluated = self.lambda().eval(callstack).eval_thunk();
         let RuntimeValue::Lambda(lambda) = evaluated else {
             panic!(
                 "self: {:?}; eval: {:?}",
