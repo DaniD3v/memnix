@@ -1,4 +1,4 @@
-// TODO name properly
+// TODO name properly (at least remove the mir)
 //! This module extends the Arena by wrapping `Expr`
 //!
 //! It allows storing `None` values or references
@@ -24,6 +24,14 @@ impl<'id> ExprArena<'id> {
 
     pub fn alloc(&mut self, expr: Expr<'id>) -> ExprId<'id> {
         self.0.alloc(MaybeOrRefExpr::Some(expr))
+    }
+
+    pub fn get_index_from(&self, idx: usize) -> Option<ExprId<'id>> {
+        self.0.get_index_from(idx)
+    }
+
+    pub fn size(&self) -> usize {
+        self.0.size()
     }
 
     pub(super) fn alloc_raw(&mut self, val: MaybeOrRefExpr<'id>) -> ExprId<'id> {
@@ -59,7 +67,7 @@ impl<'id, 'a> DebugState<'id, 'a> {
     pub fn new(arena: &'a ExprArena<'id>) -> Self {
         Self {
             arena,
-            already_debugged: vec![false; arena.0.size()],
+            already_debugged: vec![false; arena.size()],
         }
     }
 }

@@ -41,6 +41,13 @@ impl<'id, T> Arena<'id, T> {
         std::mem::replace(&mut self.inner[idx.idx], val)
     }
 
+    pub fn get_index_from(&self, idx: usize) -> Option<ArenaId<'id, T>> {
+        self.inner.get(idx).map(|_| ArenaId {
+            idx,
+            _id_invariant: PhantomData,
+        })
+    }
+
     pub fn size(&self) -> usize {
         self.inner.len()
     }
@@ -58,5 +65,11 @@ impl<'id, T> Copy for ArenaId<'id, T> {}
 impl<'id, T> Clone for ArenaId<'id, T> {
     fn clone(&self) -> Self {
         *self
+    }
+}
+
+impl<'id, T> PartialEq<ArenaId<'id, T>> for ArenaId<'id, T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.idx == other.idx
     }
 }

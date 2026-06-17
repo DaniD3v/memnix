@@ -2,7 +2,7 @@ use getset::CopyGetters;
 
 use crate::mir::ident_resolver::Resolver;
 
-#[derive(Clone, CopyGetters, Debug)]
+#[derive(Clone, PartialEq, CopyGetters, Debug)]
 pub struct Param {
     /// Every param can be uniquely identified by
     /// it's nesting depth

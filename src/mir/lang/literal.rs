@@ -1,7 +1,7 @@
 use ordered_float::NotNan;
 use rnix::ast::LiteralKind;
 
-#[derive(Hash, Clone, Debug)]
+#[derive(Hash, PartialEq, Clone, Debug)]
 pub enum Literal {
     Integer(i64),
     Float(NotNan<f64>),

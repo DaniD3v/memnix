@@ -1,4 +1,5 @@
 use std::fmt::Formatter;
+use std::iter;
 
 use rnix::ast;
 
@@ -66,6 +67,21 @@ impl Resolve for ast::Lambda {
         let body = self.body().unwrap().resolve(&body_resolver, bump)?;
 
         Ok(Lambda::new(Param::new(&resolver), body))
+    }
+}
+
+impl<'id> IntoIterator for &Lambda<'id> {
+    type Item = ExprId<'id>;
+    type IntoIter = iter::Once<ExprId<'id>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        iter::once(*self.body())
+    }
+}
+
+impl<'b> PartialEq for Lambda<'b> {
+    fn eq(&self, other: &Self) -> bool {
+        self.param() == other.param() && self.body() == other.body()
     }
 }
 

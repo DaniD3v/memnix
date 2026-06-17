@@ -1,0 +1,68 @@
+
+Node {
+	& expr,
+	// no scc (either I store index in here or like an owned scc)
+	hash: OnceLock<hash>,
+} : {new -> &'b Self}
+
+ColoredNode {
+	& node,
+	color
+}
+
+// invariant over 'b lifetime (verify)
+type SccNode = BTreeMap<*const Node, coloredNode> : {
+	new(nodes: Vec<&Node>) {
+		nodes.map(|node|
+			ColorNode {
+				node,
+				color: node.hash_initial(nodes),
+			}
+		)
+	}
+}
+
+---
+
+steps:
+	- convert expr to nodes (new bump)
+	- find scc -> petgraph dag of SccNode
+	- dfs over the dag -> coloring
+	- all the nodes now have a hash -> yeah
+
+coloring:
+	2 methods:
+		hash_initial(ignored_nodes) // this technically doesn't need to know which colors to ignore as it can ignore all not-yet evaluated
+								    // ig it increases safety a bit
+
+		// per impl check if self in colors =
+		hash_coloring(&mut Hasher, colors: SccNode) -> Color
+
+	every get_hash impl checks if self is in the state and if it is, it immediatally returns its color
+
+---
+
+open questions:
+	- multithread dfs?
+
+---
+
+unstructured:
+
+petgraph::Graph over scc, own GraphBase impl to find scc's
+(index + union set magic?)
+
+SCC Node {
+	Vec<pointers as usize>
+	Vec<colors> // RefCell?
+}
+
+some lookup node -> its scc (union magic would need a map ig)
+
+DAG over sccs
+
+not needed: eval every SccNode base_hash // no? I could also color first and then take the hash of all the colorings
+
+for colors it is lowkey useless to re-hash the original state
+	- 2 methods with_coloring
+	- and one that has ignore_nodes
