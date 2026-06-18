@@ -2,19 +2,17 @@
 //! This module wraps the primitive rnix-ast into a more high-level format
 
 mod error;
-mod ident;
 mod ident_resolver;
 mod intrinsic;
 mod lang;
 
-pub use ident::Ident;
+pub use error::MirResolveError;
 pub use intrinsic::{Intrinsic, WrappedIntrinsics};
-pub use lang::{Expr, Lambda, LambdaCall, Literal, Param};
+pub use lang::{Expr, Ident, Lambda, LambdaCall, Literal, Param};
 
 use bumpalo::Bump;
 use rnix::Root;
 
-use error::MirResolveError;
 use ident_resolver::{LambdaParamResolver, LazyMapResolver, Resolve, Resolver, RootResolver};
 
 pub fn from_root_node<'bump>(
