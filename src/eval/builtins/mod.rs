@@ -14,7 +14,8 @@ impl<'b> Eval<'b> for Intrinsic {
             Self::LessOrEq => less_or_eq(callstack),
             Self::Add => add(callstack),
             Self::Subtract => subtract(callstack),
-            // _ => todo!("Evaluate Intrinsic {:?}", self),
+
+            _ => todo!("Evaluate Intrinsic {:?}", self),
         }
     }
 }

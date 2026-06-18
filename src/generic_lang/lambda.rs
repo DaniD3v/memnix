@@ -3,11 +3,10 @@ use getset::Getters;
 use crate::{generic_lang::WithExprType, mir::Param};
 
 #[derive(Clone, Getters, Debug)]
+#[getset(get = "pub")]
 pub struct GenericLambda<E> {
     // theres goofy `{}` desugars too but lets ignore those for now
     param: Param,
-
-    #[getset(get = "pub")]
     body: E,
 }
 

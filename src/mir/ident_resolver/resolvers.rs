@@ -1,20 +1,18 @@
 use std::collections::BTreeMap;
 
-use bumpalo::Bump;
-
 use crate::mir::{
-    Expr, Ident, WrappedIntrinsics, error::MirResolveError, ident_resolver::Resolver,
+    ExprArena, ExprId, Ident, WrappedIntrinsics, error::MirResolveError, ident_resolver::Resolver,
 };
 
 pub struct RootResolver<'bump>(WrappedIntrinsics<'bump>);
 impl<'b> RootResolver<'b> {
-    pub fn new(bump: &'b Bump) -> Self {
+    pub fn new(bump: &mut ExprArena<'b>) -> Self {
         Self(WrappedIntrinsics::new(bump))
     }
 }
 
 impl<'b> Resolver<'b> for RootResolver<'b> {
-    fn resolve_ident(&self, ident: &Ident, _: &'b Bump) -> Result<&'b Expr<'b>, MirResolveError> {
+    fn resolve_ident(&self, ident: &Ident, _: &ExprArena) -> Result<ExprId<'b>, MirResolveError> {
         Err(MirResolveError::IdentUnresolvable(ident.clone()))
     }
 
@@ -27,23 +25,13 @@ impl<'b> Resolver<'b> for RootResolver<'b> {
 }
 
 pub struct LazyMapResolver<'a, 'bump> {
-    pub bindings: &'a BTreeMap<String, &'bump Expr<'bump>>,
+    pub bindings: &'a BTreeMap<String, ExprId<'bump>>,
     // Note: dyn is required as infinite resolver chains have to be possible
     pub parent: &'a dyn Resolver<'bump>,
 }
 impl<'a, 'b> Resolver<'b> for LazyMapResolver<'a, 'b> {
-    fn resolve_ident(
-        &self,
-        ident: &Ident,
-        bump: &'b Bump,
-    ) -> Result<&'b Expr<'b>, MirResolveError> {
-        match self.bindings.get(ident.as_ref()) {
-            Some(&found) => Ok(match found {
-                Expr::Deferred(cell) => cell.get().copied().unwrap_or(found),
-                _ => found,
-            }),
-            None => self.parent.resolve_ident(ident, bump),
-        }
+    fn resolve_ident(&self, ident: &Ident, _: &ExprArena) -> Result<ExprId<'b>, MirResolveError> {
+        Ok(self.bindings[ident.as_ref()])
     }
 
     fn get_param_nesting_depth(&self) -> usize {
@@ -56,7 +44,7 @@ impl<'a, 'b> Resolver<'b> for LazyMapResolver<'a, 'b> {
 
 pub struct LambdaParamResolver<'a, 'bump> {
     pub ident: Ident,
-    pub expr: &'bump Expr<'bump>,
+    pub expr: ExprId<'bump>,
     // Note: dyn is required as infinite resolver chains have to be possible
     pub parent: &'a dyn Resolver<'bump>,
 }
@@ -64,8 +52,8 @@ impl<'a, 'b> Resolver<'b> for LambdaParamResolver<'a, 'b> {
     fn resolve_ident(
         &self,
         ident: &Ident,
-        bump: &'b Bump,
-    ) -> Result<&'b Expr<'b>, MirResolveError> {
+        bump: &ExprArena<'b>,
+    ) -> Result<ExprId<'b>, MirResolveError> {
         if self.ident == *ident {
             Ok(self.expr)
         } else {

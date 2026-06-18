@@ -1,46 +1,49 @@
-use std::{
-    cell::OnceCell,
-    fmt::{Debug, Formatter},
-};
+use std::fmt::{Debug, Formatter};
 
-use bumpalo::Bump;
 use rnix::ast;
 
-use crate::mir::{
-    Intrinsic, Lambda, LambdaCall, Literal, Param, Resolve, Resolver, error::MirResolveError,
+use crate::{
+    arena::DebugWith,
+    mir::{
+        ExprArena, ExprId, Intrinsic, Lambda, LambdaCall, Literal, Param, Resolve, Resolver,
+        error::MirResolveError, mir_expr_arena::DebugState,
+    },
 };
 
-pub enum Expr<'bump> {
-    LambdaCall(LambdaCall<'bump>),
-    Lambda(Lambda<'bump>),
+pub enum Expr<'b> {
+    LambdaCall(LambdaCall<'b>),
+    Lambda(Lambda<'b>),
     Literal(Literal),
 
     Param(Param),
     Intrinsic(Intrinsic),
-
-    /// This expression is cyclic and was thus deffered.
-    /// It should be valid once the owning resolve call is finished.
-    Deferred(OnceCell<&'bump Self>),
 }
 
 impl Resolve for ast::Expr {
-    type Target<'bump> = &'bump Expr<'bump>;
+    type Target<'bump> = ExprId<'bump>;
 
-    fn resolve<'bump>(
+    fn resolve<'b>(
         self,
-        resolver: &impl Resolver<'bump>,
-        bump: &'bump Bump,
-    ) -> Result<&'bump Expr<'bump>, MirResolveError> {
+        resolver: &impl Resolver<'b>,
+        bump: &mut ExprArena<'b>,
+    ) -> Result<ExprId<'b>, MirResolveError> {
         Ok(match self {
-            ast::Expr::Apply(apply) => bump.alloc(Expr::LambdaCall(apply.resolve(resolver, bump)?)),
-            ast::Expr::Lambda(lambda) => bump.alloc(Expr::Lambda(lambda.resolve(resolver, bump)?)),
+            ast::Expr::Apply(apply) => {
+                let lambda_call = apply.resolve(resolver, bump)?;
+                bump.alloc(Expr::LambdaCall(lambda_call))
+            }
+            ast::Expr::Lambda(lambda) => {
+                let resolved_lambda = lambda.resolve(resolver, bump)?;
+                bump.alloc(Expr::Lambda(resolved_lambda))
+            }
             ast::Expr::Literal(lit) => bump.alloc(Expr::Literal(lit.kind().into())),
-
             ast::Expr::IfElse(if_else) => {
-                bump.alloc(Expr::LambdaCall(if_else.resolve(resolver, bump)?))
+                let lambda_call = if_else.resolve(resolver, bump)?;
+                bump.alloc(Expr::LambdaCall(lambda_call))
             }
             ast::Expr::BinOp(bin_op) => {
-                bump.alloc(Expr::LambdaCall(bin_op.resolve(resolver, bump)?))
+                let lambda_call = bin_op.resolve(resolver, bump)?;
+                bump.alloc(Expr::LambdaCall(lambda_call))
             }
             ast::Expr::Paren(paren) => paren.expr().unwrap().resolve(resolver, bump)?,
             ast::Expr::Ident(ident) => resolver.resolve_ident(&ident.into(), bump)?,
@@ -51,18 +54,16 @@ impl Resolve for ast::Expr {
     }
 }
 
-impl Debug for Expr<'_> {
-    // Don't wrap the variants twice
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl<'id> DebugWith<DebugState<'id, '_>> for Expr<'id> {
+    fn fmt_with(&self, with: &mut DebugState<'id, '_>, f: &mut Formatter<'_>) -> std::fmt::Result {
+        // Don't wrap the variants twice
         match self {
-            Self::LambdaCall(inner) => inner.fmt(f),
-            Self::Lambda(inner) => inner.fmt(f),
-            Self::Literal(inner) => inner.fmt(f),
+            Self::LambdaCall(inner) => inner.fmt_with(with, f),
+            Self::Lambda(inner) => inner.fmt_with(with, f),
 
+            Self::Literal(inner) => inner.fmt(f),
             Self::Param(inner) => inner.fmt(f),
             Self::Intrinsic(inner) => inner.fmt(f),
-
-            Self::Deferred(inner) => write!(f, "Deferred -> @{:p}", inner),
         }
     }
 }

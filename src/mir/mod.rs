@@ -5,23 +5,13 @@ mod error;
 mod ident_resolver;
 mod intrinsic;
 mod lang;
+mod mir_expr_arena;
+mod root_node;
 
 pub use error::MirResolveError;
 pub use intrinsic::{Intrinsic, WrappedIntrinsics};
 pub use lang::{Expr, Ident, Lambda, LambdaCall, Literal, Param};
+pub use mir_expr_arena::{ExprArena, ExprId, MaybeOrRefExpr};
+pub use root_node::RootExpr;
 
-use bumpalo::Bump;
-use rnix::Root;
-
-use ident_resolver::{LambdaParamResolver, LazyMapResolver, Resolve, Resolver, RootResolver};
-
-pub fn from_root_node<'bump>(
-    root: Root,
-    bump: &'bump Bump,
-) -> Result<&'bump Expr<'bump>, MirResolveError> {
-    let root_resolver = RootResolver::new(bump);
-
-    root.expr()
-        .expect("parsing errors")
-        .resolve(&root_resolver, bump)
-}
+use ident_resolver::{LambdaParamResolver, LazyMapResolver, Resolve, Resolver};

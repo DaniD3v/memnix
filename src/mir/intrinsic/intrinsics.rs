@@ -1,7 +1,6 @@
-use bumpalo::Bump;
 use strum::{EnumCount, EnumIter};
 
-use crate::mir::{Expr, Lambda, ident_resolver::Resolver};
+use crate::mir::{ExprArena, ExprId, Lambda, ident_resolver::Resolver};
 
 #[derive(EnumIter, EnumCount, Copy, Clone, Debug)]
 #[repr(u8)]
@@ -13,11 +12,11 @@ pub enum Intrinsic {
 }
 
 impl Intrinsic {
-    pub fn get_lambda<'b>(self, resolver: impl Resolver<'b>) -> &'b Expr<'b> {
+    pub fn get_lambda<'b>(self, resolver: impl Resolver<'b>) -> ExprId<'b> {
         resolver.get_builtins().get(self)
     }
 
-    pub(super) fn new_wrapped(self, bump: &Bump) -> &Expr<'_> {
+    pub(super) fn new_wrapped<'b>(self, bump: &mut ExprArena<'b>) -> ExprId<'b> {
         let params = self.get_params();
         Lambda::with_params(self, params, bump)
     }

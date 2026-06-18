@@ -1,19 +1,25 @@
-use bumpalo::Bump;
+use std::fmt::Formatter;
+
 use rnix::ast;
 
 use crate::{
+    arena::DebugWith,
     generic_lang::GenericLambda,
     mir::{
-        Expr, Ident, Intrinsic, LambdaParamResolver, Param, Resolve, Resolver,
-        error::MirResolveError,
+        Expr, ExprArena, ExprId, Ident, Intrinsic, LambdaParamResolver, Param, Resolve, Resolver,
+        error::MirResolveError, mir_expr_arena::DebugState,
     },
 };
 
-pub type Lambda<'bump> = GenericLambda<&'bump Expr<'bump>>;
+pub type Lambda<'bump> = GenericLambda<ExprId<'bump>>;
 
 impl<'b> Lambda<'b> {
     /// Creates a Lambda wrapping an Intrinsic with the parameter names in `params`.
-    pub fn with_params(intrinsic: Intrinsic, params: &[&str], bump: &'b Bump) -> &'b Expr<'b> {
+    pub fn with_params(
+        intrinsic: Intrinsic,
+        params: &[&str],
+        bump: &mut ExprArena<'b>,
+    ) -> ExprId<'b> {
         Self::at_depth(intrinsic, params, 0, bump)
     }
 
@@ -21,18 +27,20 @@ impl<'b> Lambda<'b> {
         intrinsic: Intrinsic,
         params: &[&str],
         depth: usize,
-        bump: &'b Bump,
-    ) -> &'b Expr<'b> {
+        bump: &mut ExprArena<'b>,
+    ) -> ExprId<'b> {
         assert!(!params.is_empty());
 
-        bump.alloc(Expr::Lambda(Self::new(
+        let expr = Expr::Lambda(Self::new(
             Param::at_depth(depth),
             if params.len() == 1 {
                 bump.alloc(Expr::Intrinsic(intrinsic))
             } else {
                 Self::at_depth(intrinsic, &params[1..], depth + 1, bump)
             },
-        )))
+        ));
+
+        bump.alloc(expr)
     }
 }
 
@@ -42,7 +50,7 @@ impl Resolve for ast::Lambda {
     fn resolve<'b>(
         self,
         resolver: &impl Resolver<'b>,
-        bump: &'b Bump,
+        bump: &mut ExprArena<'b>,
     ) -> Result<Self::Target<'b>, MirResolveError> {
         let param_name: Ident = match self.param().unwrap() {
             ast::Param::IdentParam(ident) => ident.ident().unwrap(),
@@ -58,5 +66,14 @@ impl Resolve for ast::Lambda {
         let body = self.body().unwrap().resolve(&body_resolver, bump)?;
 
         Ok(Lambda::new(Param::new(&resolver), body))
+    }
+}
+
+impl<'id> DebugWith<DebugState<'id, '_>> for Lambda<'id> {
+    fn fmt_with(&self, with: &mut DebugState<'id, '_>, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Lambda")
+            .field("param", self.param())
+            .field("body", &self.body().as_wrapper(with))
+            .finish()
     }
 }

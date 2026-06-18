@@ -1,14 +1,16 @@
 use std::{fs, path::PathBuf};
 
-use bumpalo::Bump;
 use clap::Parser;
 
-use crate::{eval::Eval, mir::from_root_node};
+use crate::mir::RootExpr;
 
-mod eval;
+mod arena;
+// mod eval; // TODO
 pub mod generic_lang;
 pub mod mir;
 pub mod object_hash;
+
+pub use arena::{Arena, ArenaId};
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -25,10 +27,10 @@ fn main() {
     let root = rnix::Root::parse(&input_content).tree();
     println!("Ast: {:#?}", root);
 
-    let bump = Bump::new();
-    let expr = from_root_node(root, &bump).unwrap();
+    let expr = RootExpr::new(root).unwrap();
     println!("Mir: {:#?}", expr);
 
-    let eval = expr.eval(&[]).eval_thunk();
-    println!("Eval: {:#?}", eval)
+    // TODO
+    // let eval = expr.eval().eval_thunk();
+    // println!("Eval: {:#?}", eval)
 }

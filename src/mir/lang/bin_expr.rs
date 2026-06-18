@@ -1,15 +1,15 @@
 use rnix::ast::BinOp;
 
-use crate::mir::{Intrinsic, LambdaCall, Resolve, Resolver, error::MirResolveError};
+use crate::mir::{ExprArena, Intrinsic, LambdaCall, Resolve, Resolver, error::MirResolveError};
 
 impl Resolve for BinOp {
     type Target<'a> = LambdaCall<'a>;
 
-    fn resolve<'bump>(
+    fn resolve<'b>(
         self,
-        resolver: &impl Resolver<'bump>,
-        bump: &'bump bumpalo::Bump,
-    ) -> Result<LambdaCall<'bump>, MirResolveError> {
+        resolver: &impl Resolver<'b>,
+        bump: &mut ExprArena<'b>,
+    ) -> Result<LambdaCall<'b>, MirResolveError> {
         let operator_kind = self.operator().unwrap();
 
         let lhs = self.lhs().unwrap().resolve(resolver, bump)?;
