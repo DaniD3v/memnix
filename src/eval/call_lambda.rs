@@ -10,11 +10,7 @@ impl<'b> Eval<'b> for LambdaCall<'b> {
     fn eval(&self, callstack: &[RuntimeValue<'b>]) -> RuntimeValue<'b> {
         let evaluated = self.lambda().eval(callstack).eval_thunk();
         let RuntimeValue::Lambda(lambda) = evaluated else {
-            panic!(
-                "self: {:?}; eval: {:?}",
-                self,
-                evaluated
-            );
+            panic!("self: {:?}; eval: {:?}", self, evaluated);
             // TODO other error for EvalError
             // return Err(EvalError::NotALambda);
         };
