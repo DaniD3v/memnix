@@ -11,12 +11,15 @@ impl<'b> GraphBase for ArenaBackedGraph<'b> {
     type EdgeId = ();
 }
 
-impl<'b> IntoNodeIdentifiers for &ArenaBackedGraph<'b> {
-    type NodeIdentifiers = Box<dyn Iterator<Item = ExprId<'b>>>;
+impl<'id> IntoNodeIdentifiers for &ArenaBackedGraph<'id> {
+    type NodeIdentifiers = <Vec<ExprId<'id>> as IntoIterator>::IntoIter;
 
     // this can be implemented with dfs over the "root" node
     fn node_identifiers(self) -> Self::NodeIdentifiers {
-        todo!()
+        (0..self.arena.size())
+            .map(|i| self.from_index(i))
+            .collect::<Vec<_>>()
+            .into_iter()
     }
 }
 
