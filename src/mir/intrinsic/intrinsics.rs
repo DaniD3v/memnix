@@ -2,7 +2,7 @@ use strum::{EnumCount, EnumIter};
 
 use crate::{
     ArenaId,
-    mir::{Lambda, LazyExprArena, ident_resolver::Resolver},
+    mir::{LazyExprArena, MirLambda, ident_resolver::Resolver},
 };
 
 #[derive(EnumIter, EnumCount, Copy, Clone, PartialEq, Debug)]
@@ -21,7 +21,7 @@ impl Intrinsic {
 
     pub(super) fn new_wrapped<'b>(self, bump: &mut LazyExprArena<'b>) -> ArenaId<'b> {
         let params = self.get_params();
-        Lambda::with_params(self, params, bump)
+        MirLambda::with_params(self, params, bump)
     }
 
     /// parameter names of the function called

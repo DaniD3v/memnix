@@ -7,7 +7,7 @@ mod value;
 
 use crate::{
     eval::value::{RuntimeLambda, RuntimeNumber, RuntimeValue},
-    mir::{Expr, Lambda, Literal},
+    mir::{Expr, MirLambda, Literal},
 };
 
 pub trait Eval<'b> {
@@ -25,7 +25,7 @@ impl<'b> Eval<'b> for Literal {
     }
 }
 
-impl<'b> Eval<'b> for Lambda<'b> {
+impl<'b> Eval<'b> for MirLambda<'b> {
     fn eval(&self, callstack: &[RuntimeValue<'b>]) -> RuntimeValue<'b> {
         assert!(self.depth() <= callstack.len());
 

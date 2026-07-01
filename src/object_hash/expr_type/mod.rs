@@ -8,7 +8,7 @@ use crate::{
     Arena, ArenaId,
     arena::{DebugState, DebugWith},
     generic_lang::WithExprType,
-    mir::{Expr, RootExpr},
+    mir::{MirExpr, RootExpr},
 };
 
 pub use root_node::OnceHashRootExpr;
@@ -16,7 +16,7 @@ pub use root_node::OnceHashRootExpr;
 type TodoHash = ();
 
 pub struct OnceHashExpr<'id> {
-    expr: Expr<'id>,
+    expr: MirExpr<'id>,
     hash: Option<TodoHash>,
 }
 
@@ -35,7 +35,7 @@ impl<'id> OnceHashExpr<'id> {
     }
 }
 
-impl<'p, 'n: 'p> WithExprType<'p, 'n, OnceHashExpr<'n>> for Expr<'p> {
+impl<'p, 'n: 'p> WithExprType<'p, 'n, OnceHashExpr<'n>> for MirExpr<'p> {
     type State<'s>
         = &'s dyn Fn(ArenaId<'p>) -> ArenaId<'n>
     where
@@ -44,12 +44,12 @@ impl<'p, 'n: 'p> WithExprType<'p, 'n, OnceHashExpr<'n>> for Expr<'p> {
     fn with_expr<'s>(&self, state: Self::State<'s>) -> OnceHashExpr<'n> {
         OnceHashExpr {
             expr: match self {
-                Self::LambdaCall(inner) => Expr::LambdaCall(inner.with_expr(state)),
-                Self::Lambda(inner) => Expr::Lambda(inner.with_expr(state)),
+                Self::LambdaCall(inner) => MirExpr::LambdaCall(inner.with_expr(state)),
+                Self::Lambda(inner) => MirExpr::Lambda(inner.with_expr(state)),
 
-                Self::Literal(inner) => Expr::Literal(inner.clone()),
-                Self::Param(inner) => Expr::Param(inner.clone()),
-                Self::Intrinsic(inner) => Expr::Intrinsic(inner.clone()),
+                Self::Literal(inner) => MirExpr::Literal(inner.clone()),
+                Self::Param(inner) => MirExpr::Param(inner.clone()),
+                Self::Intrinsic(inner) => MirExpr::Intrinsic(inner.clone()),
             },
             hash: None,
         }
@@ -80,7 +80,7 @@ impl<'id> DebugWith<DebugState<'id, '_, Arena<'id, OnceHashExpr<'id>>>> for Once
     }
 }
 
-impl<'id> DebugWith<DebugState<'id, '_, Arena<'id, OnceHashExpr<'id>>>> for Expr<'id> {
+impl<'id> DebugWith<DebugState<'id, '_, Arena<'id, OnceHashExpr<'id>>>> for MirExpr<'id> {
     fn fmt_with(
         &self,
         with: &mut DebugState<'id, '_, Arena<'id, OnceHashExpr<'id>>>,

@@ -9,14 +9,14 @@ use crate::{
     ArenaId,
     arena::{DebugWith, LazyDebugState},
     mir::{
-        Intrinsic, Lambda, LambdaCall, LazyExprArena, Literal, Param, Resolve, Resolver,
+        Intrinsic, LazyExprArena, Literal, MirLambda, MirLambdaCall, Param, Resolve, Resolver,
         error::MirResolveError,
     },
 };
 
-pub enum Expr<'b> {
-    LambdaCall(LambdaCall<'b>),
-    Lambda(Lambda<'b>),
+pub enum MirExpr<'b> {
+    LambdaCall(MirLambdaCall<'b>),
+    Lambda(MirLambda<'b>),
     Literal(Literal),
 
     Param(Param),
@@ -34,20 +34,20 @@ impl Resolve for ast::Expr {
         Ok(match self {
             ast::Expr::Apply(apply) => {
                 let lambda_call = apply.resolve(resolver, bump)?;
-                bump.alloc(Expr::LambdaCall(lambda_call))
+                bump.alloc(MirExpr::LambdaCall(lambda_call))
             }
             ast::Expr::Lambda(lambda) => {
                 let resolved_lambda = lambda.resolve(resolver, bump)?;
-                bump.alloc(Expr::Lambda(resolved_lambda))
+                bump.alloc(MirExpr::Lambda(resolved_lambda))
             }
-            ast::Expr::Literal(lit) => bump.alloc(Expr::Literal(lit.kind().into())),
+            ast::Expr::Literal(lit) => bump.alloc(MirExpr::Literal(lit.kind().into())),
             ast::Expr::IfElse(if_else) => {
                 let lambda_call = if_else.resolve(resolver, bump)?;
-                bump.alloc(Expr::LambdaCall(lambda_call))
+                bump.alloc(MirExpr::LambdaCall(lambda_call))
             }
             ast::Expr::BinOp(bin_op) => {
                 let lambda_call = bin_op.resolve(resolver, bump)?;
-                bump.alloc(Expr::LambdaCall(lambda_call))
+                bump.alloc(MirExpr::LambdaCall(lambda_call))
             }
             ast::Expr::Paren(paren) => paren.expr().unwrap().resolve(resolver, bump)?,
             ast::Expr::Ident(ident) => resolver.resolve_ident(&ident.into(), bump)?,
@@ -58,21 +58,21 @@ impl Resolve for ast::Expr {
     }
 }
 
-impl<'id> IntoIterator for &Expr<'id> {
+impl<'id> IntoIterator for &MirExpr<'id> {
     type Item = ArenaId<'id>;
     type IntoIter = Box<dyn Iterator<Item = Self::Item> + 'id>;
 
     fn into_iter(self) -> Self::IntoIter {
         match self {
-            Expr::LambdaCall(lambda_call) => Box::new(lambda_call.into_iter()),
-            Expr::Lambda(lambda) => Box::new(lambda.into_iter()),
+            MirExpr::LambdaCall(lambda_call) => Box::new(lambda_call.into_iter()),
+            MirExpr::Lambda(lambda) => Box::new(lambda.into_iter()),
 
             _ => Box::new(iter::empty()),
         }
     }
 }
 
-impl<'b> PartialEq for Expr<'b> {
+impl<'b> PartialEq for MirExpr<'b> {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::LambdaCall(l), Self::LambdaCall(r)) => l == r,
@@ -86,10 +86,10 @@ impl<'b> PartialEq for Expr<'b> {
     }
 }
 
-impl<'id> DebugWith<LazyDebugState<'id, '_, Expr<'id>>> for Expr<'id> {
+impl<'id> DebugWith<LazyDebugState<'id, '_, MirExpr<'id>>> for MirExpr<'id> {
     fn fmt_with(
         &self,
-        with: &mut LazyDebugState<'id, '_, Expr<'id>>,
+        with: &mut LazyDebugState<'id, '_, MirExpr<'id>>,
         f: &mut Formatter<'_>,
     ) -> std::fmt::Result {
         match self {

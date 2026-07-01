@@ -6,14 +6,14 @@ use crate::{
     ArenaId,
     generic_lang::GenericLambda,
     mir::{
-        Expr, Ident, Intrinsic, LambdaParamResolver, LazyExprArena, Param, Resolve, Resolver,
+        Ident, Intrinsic, LambdaParamResolver, LazyExprArena, MirExpr, Param, Resolve, Resolver,
         error::MirResolveError,
     },
 };
 
-pub type Lambda<'bump> = GenericLambda<ArenaId<'bump>>;
+pub type MirLambda<'bump> = GenericLambda<ArenaId<'bump>>;
 
-impl<'b> Lambda<'b> {
+impl<'b> MirLambda<'b> {
     /// Creates a Lambda wrapping an Intrinsic with the parameter names in `params`.
     pub fn with_params(
         intrinsic: Intrinsic,
@@ -31,10 +31,10 @@ impl<'b> Lambda<'b> {
     ) -> ArenaId<'b> {
         assert!(!params.is_empty());
 
-        let expr = Expr::Lambda(Self::new(
+        let expr = MirExpr::Lambda(Self::new(
             Param::at_depth(depth),
             if params.len() == 1 {
-                bump.alloc(Expr::Intrinsic(intrinsic))
+                bump.alloc(MirExpr::Intrinsic(intrinsic))
             } else {
                 Self::at_depth(intrinsic, &params[1..], depth + 1, bump)
             },
@@ -45,7 +45,7 @@ impl<'b> Lambda<'b> {
 }
 
 impl Resolve for ast::Lambda {
-    type Target<'bump> = Lambda<'bump>;
+    type Target<'bump> = MirLambda<'bump>;
 
     fn resolve<'b>(
         self,
@@ -60,16 +60,16 @@ impl Resolve for ast::Lambda {
 
         let body_resolver = LambdaParamResolver {
             ident: param_name.clone(),
-            expr: bump.alloc(Expr::Param(Param::new(resolver))),
+            expr: bump.alloc(MirExpr::Param(Param::new(resolver))),
             parent: resolver,
         };
         let body = self.body().unwrap().resolve(&body_resolver, bump)?;
 
-        Ok(Lambda::new(Param::new(&resolver), body))
+        Ok(MirLambda::new(Param::new(&resolver), body))
     }
 }
 
-impl<'id> IntoIterator for &Lambda<'id> {
+impl<'id> IntoIterator for &MirLambda<'id> {
     type Item = ArenaId<'id>;
     type IntoIter = iter::Once<ArenaId<'id>>;
 
@@ -78,7 +78,7 @@ impl<'id> IntoIterator for &Lambda<'id> {
     }
 }
 
-impl<'b> PartialEq for Lambda<'b> {
+impl<'b> PartialEq for MirLambda<'b> {
     fn eq(&self, other: &Self) -> bool {
         self.param() == other.param() && self.body() == other.body()
     }

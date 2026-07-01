@@ -5,12 +5,12 @@ use rnix::ast;
 use crate::{
     ArenaId,
     generic_lang::GenericLambdaCall,
-    mir::{Expr, LazyExprArena, Resolve, Resolver, error::MirResolveError},
+    mir::{LazyExprArena, MirExpr, Resolve, Resolver, error::MirResolveError},
 };
 
-pub type LambdaCall<'bump> = GenericLambdaCall<ArenaId<'bump>>;
+pub type MirLambdaCall<'bump> = GenericLambdaCall<ArenaId<'bump>>;
 
-impl<'b> LambdaCall<'b> {
+impl<'b> MirLambdaCall<'b> {
     /// In nix lambas only take one input parameter.
     /// In order to take multiple you simply return a second function
     /// that takes another parameter from the first function.
@@ -22,36 +22,37 @@ impl<'b> LambdaCall<'b> {
         assert!(!args.is_empty());
 
         if args.len() == 1 {
-            LambdaCall::new(lambda, args[0])
+            MirLambdaCall::new(lambda, args[0])
         } else {
             let (&argument, curried_args) = args.split_last().expect("args cannot be empty");
 
             // The lambda that is to the left of this lambda.
             // e.g. `builtins.add 1` in `(builtins.add 1) 2`
-            let inner = Expr::LambdaCall(LambdaCall::new_curried(lambda, curried_args, arena));
+            let inner =
+                MirExpr::LambdaCall(MirLambdaCall::new_curried(lambda, curried_args, arena));
             let inner = arena.alloc(inner);
 
-            LambdaCall::new(inner, argument)
+            MirLambdaCall::new(inner, argument)
         }
     }
 }
 
 impl Resolve for ast::Apply {
-    type Target<'bump> = LambdaCall<'bump>;
+    type Target<'bump> = MirLambdaCall<'bump>;
 
     fn resolve<'bump>(
         self,
         resolver: &impl Resolver<'bump>,
         bump: &mut LazyExprArena<'bump>,
-    ) -> Result<LambdaCall<'bump>, MirResolveError> {
+    ) -> Result<MirLambdaCall<'bump>, MirResolveError> {
         let lambda = self.lambda().unwrap().resolve(resolver, bump)?;
         let argument = self.argument().unwrap().resolve(resolver, bump)?;
 
-        Ok(LambdaCall::new(lambda, argument))
+        Ok(MirLambdaCall::new(lambda, argument))
     }
 }
 
-impl<'id> IntoIterator for &LambdaCall<'id> {
+impl<'id> IntoIterator for &MirLambdaCall<'id> {
     type Item = ArenaId<'id>;
     type IntoIter = array::IntoIter<ArenaId<'id>, 2>;
 
@@ -63,7 +64,7 @@ impl<'id> IntoIterator for &LambdaCall<'id> {
 // TODO: test this
 // 'b is invariant so we can only compare to
 // elements backed by the same bump allocator
-impl<'b> PartialEq for LambdaCall<'b> {
+impl<'b> PartialEq for MirLambdaCall<'b> {
     fn eq(&self, other: &Self) -> bool {
         self.into_iter().eq(other)
     }
