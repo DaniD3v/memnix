@@ -30,8 +30,15 @@ pub struct LazyMapResolver<'a, 'bump> {
     pub parent: &'a dyn Resolver<'bump>,
 }
 impl<'a, 'b> Resolver<'b> for LazyMapResolver<'a, 'b> {
-    fn resolve_ident(&self, ident: &Ident, _: &ExprArena) -> Result<ExprId<'b>, MirResolveError> {
-        Ok(self.bindings[ident.as_ref()])
+    fn resolve_ident(
+        &self,
+        ident: &Ident,
+        arena: &ExprArena<'b>,
+    ) -> Result<ExprId<'b>, MirResolveError> {
+        match self.bindings.get(ident.as_ref()) {
+            Some(&found) => Ok(found),
+            None => self.parent.resolve_ident(ident, arena),
+        }
     }
 
     fn get_param_nesting_depth(&self) -> usize {
