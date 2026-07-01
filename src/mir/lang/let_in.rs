@@ -1,20 +1,20 @@
 use rnix::ast::{self, HasEntry};
 
-use crate::mir::{
-    ExprArena, ExprId, Ident, LazyMapResolver, MaybeOrRefExpr, Resolve, Resolver,
-    error::MirResolveError,
+use crate::{
+    ArenaId,
+    mir::{Ident, LazyExprArena, LazyMapResolver, Resolve, Resolver, error::MirResolveError},
 };
 
 impl Resolve for ast::LetIn {
-    type Target<'bump> = ExprId<'bump>;
+    type Target<'bump> = ArenaId<'bump>;
 
     fn resolve<'bump>(
         self,
         parent_resolver: &impl Resolver<'bump>,
-        arena: &mut ExprArena<'bump>,
+        arena: &mut LazyExprArena<'bump>,
     ) -> Result<Self::Target<'bump>, MirResolveError> {
         let bindings = iter_let_in(&self)
-            .map(|(k, _)| (k.into(), arena.alloc_raw(MaybeOrRefExpr::None)))
+            .map(|(k, _)| (k.into(), arena.alloc_deferred()))
             .collect();
 
         let resolver = LazyMapResolver {
@@ -26,7 +26,7 @@ impl Resolve for ast::LetIn {
         // e.g. `let x=1; x=2; in x`
         for (k, expr) in iter_let_in(&self) {
             let resolved = expr.resolve(&resolver, arena)?;
-            arena.replace_none(bindings[k.as_ref()], MaybeOrRefExpr::Ref(resolved));
+            arena.replace_none_with_ref(bindings[k.as_ref()], resolved);
         }
 
         self.body().unwrap().resolve(&resolver, arena)

@@ -1,6 +1,9 @@
 use strum::{EnumCount, EnumIter};
 
-use crate::mir::{ExprArena, ExprId, Lambda, ident_resolver::Resolver};
+use crate::{
+    ArenaId,
+    mir::{Lambda, LazyExprArena, ident_resolver::Resolver},
+};
 
 #[derive(EnumIter, EnumCount, Copy, Clone, PartialEq, Debug)]
 #[repr(u8)]
@@ -12,11 +15,11 @@ pub enum Intrinsic {
 }
 
 impl Intrinsic {
-    pub fn get_lambda<'b>(self, resolver: impl Resolver<'b>) -> ExprId<'b> {
+    pub fn get_lambda<'b>(self, resolver: impl Resolver<'b>) -> ArenaId<'b> {
         resolver.get_builtins().get(self)
     }
 
-    pub(super) fn new_wrapped<'b>(self, bump: &mut ExprArena<'b>) -> ExprId<'b> {
+    pub(super) fn new_wrapped<'b>(self, bump: &mut LazyExprArena<'b>) -> ArenaId<'b> {
         let params = self.get_params();
         Lambda::with_params(self, params, bump)
     }

@@ -1,4 +1,7 @@
-use crate::mir::{ExprArena, ExprId, Ident, WrappedIntrinsics, error::MirResolveError};
+use crate::{
+    ArenaId,
+    mir::{Ident, LazyExprArena, WrappedIntrinsics, error::MirResolveError},
+};
 
 /// Ast type that can be resolved to a Mir type
 pub trait Resolve: Sized {
@@ -6,7 +9,7 @@ pub trait Resolve: Sized {
     fn resolve<'bump>(
         self,
         resolver: &impl Resolver<'bump>,
-        bump: &mut ExprArena<'bump>,
+        bump: &mut LazyExprArena<'bump>,
     ) -> Result<Self::Target<'bump>, MirResolveError>;
 }
 
@@ -14,8 +17,8 @@ pub trait Resolver<'bump> {
     fn resolve_ident(
         &self,
         ident: &Ident,
-        bump: &ExprArena<'bump>,
-    ) -> Result<ExprId<'bump>, MirResolveError>;
+        bump: &LazyExprArena<'bump>,
+    ) -> Result<ArenaId<'bump>, MirResolveError>;
 
     /// Returns how deeply nested the current lambda parameter is
     fn get_param_nesting_depth(&self) -> usize;
@@ -26,8 +29,8 @@ impl<'b, T: Resolver<'b>> Resolver<'b> for &T {
     fn resolve_ident(
         &self,
         ident: &Ident,
-        bump: &ExprArena<'b>,
-    ) -> Result<ExprId<'b>, MirResolveError> {
+        bump: &LazyExprArena<'b>,
+    ) -> Result<ArenaId<'b>, MirResolveError> {
         (*self).resolve_ident(ident, bump)
     }
     fn get_param_nesting_depth(&self) -> usize {

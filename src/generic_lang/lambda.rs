@@ -1,6 +1,8 @@
+use std::fmt::Formatter;
+
 use getset::Getters;
 
-use crate::{generic_lang::WithExprType, mir::Param};
+use crate::{arena::DebugWith, generic_lang::WithExprType, mir::Param};
 
 #[derive(Clone, Getters, Debug)]
 #[getset(get = "pub")]
@@ -20,14 +22,27 @@ impl<E> GenericLambda<E> {
     }
 }
 
-impl<From: WithExprType<To>, To> WithExprType<To> for GenericLambda<From> {
-    type Target<'t> = GenericLambda<From::Target<'t>>;
-    type State<'t> = From::State<'t>;
+impl<'p, 'n, From: WithExprType<'p, 'n, To>, To> WithExprType<'p, 'n, GenericLambda<To>>
+    for GenericLambda<From>
+{
+    type State<'s>
+        = From::State<'s>
+    where
+        'p: 's;
 
-    fn with_expr<'t>(&self, state: &mut Self::State<'t>) -> Self::Target<'t> {
+    fn with_expr<'s>(&self, state: Self::State<'s>) -> GenericLambda<To> {
         GenericLambda {
             param: self.param.clone(),
             body: self.body.with_expr(state),
         }
+    }
+}
+
+impl<T, E: DebugWith<T>> DebugWith<T> for GenericLambda<E> {
+    fn fmt_with(&self, with: &mut T, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Lambda")
+            .field("param", self.param())
+            .field("body", &self.body().as_wrapper(with))
+            .finish()
     }
 }

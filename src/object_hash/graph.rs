@@ -1,20 +1,22 @@
 use petgraph::visit::{GraphBase, IntoNeighbors, IntoNodeIdentifiers, NodeIndexable};
 
-use crate::mir::{ExprArena, ExprId};
+use crate::{ArenaId, mir::LazyExprArena};
 
 struct ArenaBackedGraph<'b> {
-    arena: ExprArena<'b>,
+    arena: LazyExprArena<'b>,
 }
 
+// TODO: PartialEq for ArenaId is a bit goofy here, as this is a lazyArena
+// Switch it to use the proper arena that's owned
 impl<'b> GraphBase for ArenaBackedGraph<'b> {
-    type NodeId = ExprId<'b>;
+    type NodeId = ArenaId<'b>;
     type EdgeId = ();
 }
 
 impl<'id> IntoNodeIdentifiers for &ArenaBackedGraph<'id> {
-    type NodeIdentifiers = <Vec<ExprId<'id>> as IntoIterator>::IntoIter;
+    type NodeIdentifiers = <Vec<ArenaId<'id>> as IntoIterator>::IntoIter;
 
-    // this can be implemented with dfs over the "root" node
+    // this iterates over all indices, not all values!
     fn node_identifiers(self) -> Self::NodeIdentifiers {
         (0..self.arena.size())
             .map(|i| self.from_index(i))
@@ -24,7 +26,7 @@ impl<'id> IntoNodeIdentifiers for &ArenaBackedGraph<'id> {
 }
 
 impl<'id> IntoNeighbors for &ArenaBackedGraph<'id> {
-    type Neighbors = Box<dyn Iterator<Item = ExprId<'id>> + 'id>;
+    type Neighbors = Box<dyn Iterator<Item = ArenaId<'id>> + 'id>;
 
     fn neighbors(self, node: Self::NodeId) -> Self::Neighbors {
         self.arena[node].into_iter()

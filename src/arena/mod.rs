@@ -1,9 +1,16 @@
-use std::{marker::PhantomData, ops::Index};
+mod debug;
+mod lazy_arena;
 
-mod debug_with;
+use std::{
+    marker::PhantomData,
+    ops::{Index, IndexMut},
+    slice, vec,
+};
 
-pub use debug_with::DebugWith;
 use getset::CopyGetters;
+
+pub use debug::{DebugArena, DebugState, DebugWith};
+pub use lazy_arena::{LazyArena, LazyDebugState};
 
 #[derive(Debug)]
 pub struct Arena<'id, T> {
@@ -11,11 +18,13 @@ pub struct Arena<'id, T> {
     _id_invariant: PhantomData<fn(&'id ()) -> &'id ()>,
 }
 
+/// An `ArenaId` is an index into the `Arena` with the lifetime `id`.
+/// The id cannot be an invalid index.
 #[derive(CopyGetters)]
-pub struct ArenaId<'id, T> {
+pub struct ArenaId<'id> {
     #[getset(get_copy = "pub")]
     idx: usize,
-    _id_invariant: PhantomData<fn(&'id ()) -> &'id T>,
+    _id_invariant: PhantomData<fn(&'id ()) -> &'id ()>,
 }
 
 impl<'id, T> Arena<'id, T> {
@@ -27,7 +36,7 @@ impl<'id, T> Arena<'id, T> {
         }
     }
 
-    pub fn alloc(&mut self, val: T) -> ArenaId<'id, T> {
+    pub fn alloc(&mut self, val: T) -> ArenaId<'id> {
         let idx = self.inner.len();
         self.inner.push(val);
 
@@ -37,11 +46,16 @@ impl<'id, T> Arena<'id, T> {
         }
     }
 
-    pub fn replace(&mut self, idx: ArenaId<'id, T>, val: T) -> T {
-        std::mem::replace(&mut self.inner[idx.idx], val)
+    pub fn map<I>(self, transform: fn(T) -> I) -> Arena<'id, I> {
+        let new_vec: Vec<I> = self.inner.into_iter().map(transform).collect();
+
+        Arena {
+            inner: new_vec,
+            _id_invariant: self._id_invariant,
+        }
     }
 
-    pub fn get_index_from(&self, idx: usize) -> Option<ArenaId<'id, T>> {
+    pub fn get_index_from(&self, idx: usize) -> Option<ArenaId<'id>> {
         self.inner.get(idx).map(|_| ArenaId {
             idx,
             _id_invariant: PhantomData,
@@ -51,24 +65,43 @@ impl<'id, T> Arena<'id, T> {
     pub fn size(&self) -> usize {
         self.inner.len()
     }
-}
 
-impl<'b, T> Index<ArenaId<'b, T>> for Arena<'b, T> {
-    type Output = T;
-
-    fn index(&self, index: ArenaId<'b, T>) -> &Self::Output {
-        &self.inner[index.idx]
+    fn iter(&self) -> slice::Iter<'_, T> {
+        self.inner.iter()
     }
 }
 
-impl<'id, T> Copy for ArenaId<'id, T> {}
-impl<'id, T> Clone for ArenaId<'id, T> {
+impl<'id, T> Index<ArenaId<'id>> for Arena<'id, T> {
+    type Output = T;
+
+    fn index(&self, index: ArenaId<'id>) -> &Self::Output {
+        &self.inner[index.idx()]
+    }
+}
+
+impl<'id, T> IndexMut<ArenaId<'id>> for Arena<'id, T> {
+    fn index_mut(&mut self, index: ArenaId<'id>) -> &mut Self::Output {
+        &mut self.inner[index.idx()]
+    }
+}
+
+impl<'id, T> IntoIterator for Arena<'id, T> {
+    type Item = T;
+    type IntoIter = vec::IntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.inner.into_iter()
+    }
+}
+
+impl<'id> Copy for ArenaId<'id> {}
+impl<'id> Clone for ArenaId<'id> {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-impl<'id, T> PartialEq<ArenaId<'id, T>> for ArenaId<'id, T> {
+impl<'id> PartialEq for ArenaId<'id> {
     fn eq(&self, other: &Self) -> bool {
         self.idx == other.idx
     }

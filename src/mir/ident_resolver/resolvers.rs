@@ -1,18 +1,25 @@
 use std::collections::BTreeMap;
 
-use crate::mir::{
-    ExprArena, ExprId, Ident, WrappedIntrinsics, error::MirResolveError, ident_resolver::Resolver,
+use crate::{
+    ArenaId,
+    mir::{
+        Ident, LazyExprArena, WrappedIntrinsics, error::MirResolveError, ident_resolver::Resolver,
+    },
 };
 
 pub struct RootResolver<'bump>(WrappedIntrinsics<'bump>);
 impl<'b> RootResolver<'b> {
-    pub fn new(bump: &mut ExprArena<'b>) -> Self {
+    pub fn new(bump: &mut LazyExprArena<'b>) -> Self {
         Self(WrappedIntrinsics::new(bump))
     }
 }
 
 impl<'b> Resolver<'b> for RootResolver<'b> {
-    fn resolve_ident(&self, ident: &Ident, _: &ExprArena) -> Result<ExprId<'b>, MirResolveError> {
+    fn resolve_ident(
+        &self,
+        ident: &Ident,
+        _: &LazyExprArena,
+    ) -> Result<ArenaId<'b>, MirResolveError> {
         Err(MirResolveError::IdentUnresolvable(ident.clone()))
     }
 
@@ -25,7 +32,7 @@ impl<'b> Resolver<'b> for RootResolver<'b> {
 }
 
 pub struct LazyMapResolver<'a, 'bump> {
-    pub bindings: &'a BTreeMap<String, ExprId<'bump>>,
+    pub bindings: &'a BTreeMap<String, ArenaId<'bump>>,
     // Note: dyn is required as infinite resolver chains have to be possible
     pub parent: &'a dyn Resolver<'bump>,
 }
@@ -33,8 +40,8 @@ impl<'a, 'b> Resolver<'b> for LazyMapResolver<'a, 'b> {
     fn resolve_ident(
         &self,
         ident: &Ident,
-        arena: &ExprArena<'b>,
-    ) -> Result<ExprId<'b>, MirResolveError> {
+        arena: &LazyExprArena<'b>,
+    ) -> Result<ArenaId<'b>, MirResolveError> {
         match self.bindings.get(ident.as_ref()) {
             Some(&found) => Ok(found),
             None => self.parent.resolve_ident(ident, arena),
@@ -51,7 +58,7 @@ impl<'a, 'b> Resolver<'b> for LazyMapResolver<'a, 'b> {
 
 pub struct LambdaParamResolver<'a, 'bump> {
     pub ident: Ident,
-    pub expr: ExprId<'bump>,
+    pub expr: ArenaId<'bump>,
     // Note: dyn is required as infinite resolver chains have to be possible
     pub parent: &'a dyn Resolver<'bump>,
 }
@@ -59,8 +66,8 @@ impl<'a, 'b> Resolver<'b> for LambdaParamResolver<'a, 'b> {
     fn resolve_ident(
         &self,
         ident: &Ident,
-        bump: &ExprArena<'b>,
-    ) -> Result<ExprId<'b>, MirResolveError> {
+        bump: &LazyExprArena<'b>,
+    ) -> Result<ArenaId<'b>, MirResolveError> {
         if self.ident == *ident {
             Ok(self.expr)
         } else {

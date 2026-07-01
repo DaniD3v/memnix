@@ -2,9 +2,9 @@ use std::{fs, path::PathBuf};
 
 use clap::Parser;
 
-use crate::mir::RootExpr;
+use crate::{mir::RootExpr, object_hash::OnceHashRootExpr};
 
-mod arena;
+pub mod arena;
 // mod eval; // TODO
 pub mod generic_lang;
 pub mod mir;
@@ -27,8 +27,11 @@ fn main() {
     let root = rnix::Root::parse(&input_content).tree();
     println!("Ast: {:#?}", root);
 
-    let expr = RootExpr::new(root).unwrap();
-    println!("Mir: {:#?}", expr);
+    let mir_expr = RootExpr::new(root).unwrap();
+    println!("Mir: {:#?}", mir_expr);
+
+    let hashed = OnceHashRootExpr::from_mir_root(mir_expr);
+    println!("Hashed: {:#?}", hashed);
 
     // TODO
     // let eval = expr.eval().eval_thunk();

@@ -6,10 +6,11 @@ use std::{
 use rnix::ast;
 
 use crate::{
-    arena::DebugWith,
+    ArenaId,
+    arena::{DebugWith, LazyDebugState},
     mir::{
-        ExprArena, ExprId, Intrinsic, Lambda, LambdaCall, Literal, Param, Resolve, Resolver,
-        error::MirResolveError, mir_expr_arena::DebugState,
+        Intrinsic, Lambda, LambdaCall, LazyExprArena, Literal, Param, Resolve, Resolver,
+        error::MirResolveError,
     },
 };
 
@@ -23,13 +24,13 @@ pub enum Expr<'b> {
 }
 
 impl Resolve for ast::Expr {
-    type Target<'bump> = ExprId<'bump>;
+    type Target<'bump> = ArenaId<'bump>;
 
     fn resolve<'b>(
         self,
         resolver: &impl Resolver<'b>,
-        bump: &mut ExprArena<'b>,
-    ) -> Result<ExprId<'b>, MirResolveError> {
+        bump: &mut LazyExprArena<'b>,
+    ) -> Result<ArenaId<'b>, MirResolveError> {
         Ok(match self {
             ast::Expr::Apply(apply) => {
                 let lambda_call = apply.resolve(resolver, bump)?;
@@ -58,7 +59,7 @@ impl Resolve for ast::Expr {
 }
 
 impl<'id> IntoIterator for &Expr<'id> {
-    type Item = ExprId<'id>;
+    type Item = ArenaId<'id>;
     type IntoIter = Box<dyn Iterator<Item = Self::Item> + 'id>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -85,8 +86,12 @@ impl<'b> PartialEq for Expr<'b> {
     }
 }
 
-impl<'id> DebugWith<DebugState<'id, '_>> for Expr<'id> {
-    fn fmt_with(&self, with: &mut DebugState<'id, '_>, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl<'id> DebugWith<LazyDebugState<'id, '_, Expr<'id>>> for Expr<'id> {
+    fn fmt_with(
+        &self,
+        with: &mut LazyDebugState<'id, '_, Expr<'id>>,
+        f: &mut Formatter<'_>,
+    ) -> std::fmt::Result {
         match self {
             Self::LambdaCall(inner) => inner.fmt_with(with, f),
             Self::Lambda(inner) => inner.fmt_with(with, f),
