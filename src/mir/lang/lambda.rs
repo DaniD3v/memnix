@@ -1,26 +1,25 @@
-use std::fmt::Formatter;
 use std::iter;
 
 use rnix::ast;
 
 use crate::{
-    arena::DebugWith,
+    ArenaId,
     generic_lang::GenericLambda,
     mir::{
-        Expr, ExprArena, ExprId, Ident, Intrinsic, LambdaParamResolver, Param, Resolve, Resolver,
-        error::MirResolveError, mir_expr_arena::DebugState,
+        Expr, Ident, Intrinsic, LambdaParamResolver, LazyExprArena, Param, Resolve, Resolver,
+        error::MirResolveError,
     },
 };
 
-pub type Lambda<'bump> = GenericLambda<ExprId<'bump>>;
+pub type Lambda<'bump> = GenericLambda<ArenaId<'bump>>;
 
 impl<'b> Lambda<'b> {
     /// Creates a Lambda wrapping an Intrinsic with the parameter names in `params`.
     pub fn with_params(
         intrinsic: Intrinsic,
         params: &[&str],
-        bump: &mut ExprArena<'b>,
-    ) -> ExprId<'b> {
+        bump: &mut LazyExprArena<'b>,
+    ) -> ArenaId<'b> {
         Self::at_depth(intrinsic, params, 0, bump)
     }
 
@@ -28,8 +27,8 @@ impl<'b> Lambda<'b> {
         intrinsic: Intrinsic,
         params: &[&str],
         depth: usize,
-        bump: &mut ExprArena<'b>,
-    ) -> ExprId<'b> {
+        bump: &mut LazyExprArena<'b>,
+    ) -> ArenaId<'b> {
         assert!(!params.is_empty());
 
         let expr = Expr::Lambda(Self::new(
@@ -51,7 +50,7 @@ impl Resolve for ast::Lambda {
     fn resolve<'b>(
         self,
         resolver: &impl Resolver<'b>,
-        bump: &mut ExprArena<'b>,
+        bump: &mut LazyExprArena<'b>,
     ) -> Result<Self::Target<'b>, MirResolveError> {
         let param_name: Ident = match self.param().unwrap() {
             ast::Param::IdentParam(ident) => ident.ident().unwrap(),
@@ -71,8 +70,8 @@ impl Resolve for ast::Lambda {
 }
 
 impl<'id> IntoIterator for &Lambda<'id> {
-    type Item = ExprId<'id>;
-    type IntoIter = iter::Once<ExprId<'id>>;
+    type Item = ArenaId<'id>;
+    type IntoIter = iter::Once<ArenaId<'id>>;
 
     fn into_iter(self) -> Self::IntoIter {
         iter::once(*self.body())
@@ -82,14 +81,5 @@ impl<'id> IntoIterator for &Lambda<'id> {
 impl<'b> PartialEq for Lambda<'b> {
     fn eq(&self, other: &Self) -> bool {
         self.param() == other.param() && self.body() == other.body()
-    }
-}
-
-impl<'id> DebugWith<DebugState<'id, '_>> for Lambda<'id> {
-    fn fmt_with(&self, with: &mut DebugState<'id, '_>, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Lambda")
-            .field("param", self.param())
-            .field("body", &self.body().as_wrapper(with))
-            .finish()
     }
 }

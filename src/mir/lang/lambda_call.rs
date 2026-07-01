@@ -1,23 +1,24 @@
-use std::{array, fmt::Formatter};
+use std::array;
 
 use rnix::ast;
 
 use crate::{
-    arena::DebugWith,
+    ArenaId,
     generic_lang::GenericLambdaCall,
-    mir::{
-        Expr, ExprArena, ExprId, Resolve, Resolver, error::MirResolveError,
-        mir_expr_arena::DebugState,
-    },
+    mir::{Expr, LazyExprArena, Resolve, Resolver, error::MirResolveError},
 };
 
-pub type LambdaCall<'bump> = GenericLambdaCall<ExprId<'bump>>;
+pub type LambdaCall<'bump> = GenericLambdaCall<ArenaId<'bump>>;
 
 impl<'b> LambdaCall<'b> {
     /// In nix lambas only take one input parameter.
     /// In order to take multiple you simply return a second function
     /// that takes another parameter from the first function.
-    pub fn new_curried(lambda: ExprId<'b>, args: &[ExprId<'b>], arena: &mut ExprArena<'b>) -> Self {
+    pub fn new_curried(
+        lambda: ArenaId<'b>,
+        args: &[ArenaId<'b>],
+        arena: &mut LazyExprArena<'b>,
+    ) -> Self {
         assert!(!args.is_empty());
 
         if args.len() == 1 {
@@ -41,7 +42,7 @@ impl Resolve for ast::Apply {
     fn resolve<'bump>(
         self,
         resolver: &impl Resolver<'bump>,
-        bump: &mut ExprArena<'bump>,
+        bump: &mut LazyExprArena<'bump>,
     ) -> Result<LambdaCall<'bump>, MirResolveError> {
         let lambda = self.lambda().unwrap().resolve(resolver, bump)?;
         let argument = self.argument().unwrap().resolve(resolver, bump)?;
@@ -51,8 +52,8 @@ impl Resolve for ast::Apply {
 }
 
 impl<'id> IntoIterator for &LambdaCall<'id> {
-    type Item = ExprId<'id>;
-    type IntoIter = array::IntoIter<ExprId<'id>, 2>;
+    type Item = ArenaId<'id>;
+    type IntoIter = array::IntoIter<ArenaId<'id>, 2>;
 
     fn into_iter(self) -> Self::IntoIter {
         [*self.lambda(), *self.argument()].into_iter()
@@ -65,14 +66,5 @@ impl<'id> IntoIterator for &LambdaCall<'id> {
 impl<'b> PartialEq for LambdaCall<'b> {
     fn eq(&self, other: &Self) -> bool {
         self.into_iter().eq(other)
-    }
-}
-
-impl<'id> DebugWith<DebugState<'id, '_>> for LambdaCall<'id> {
-    fn fmt_with(&self, with: &mut DebugState<'id, '_>, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("LambdaCall")
-            .field("lambda", &self.lambda().as_wrapper(with))
-            .field("argument", &self.argument().as_wrapper(with))
-            .finish()
     }
 }

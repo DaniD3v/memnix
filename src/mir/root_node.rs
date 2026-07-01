@@ -1,24 +1,27 @@
 use std::fmt::{Debug, Formatter};
 
+use getset::Getters;
 use rnix::Root;
 
 use crate::{
+    ArenaId,
     arena::DebugWith,
     mir::{
-        ExprArena, ExprId, MirResolveError,
+        LazyDebugState, LazyExprArena, MirResolveError,
         ident_resolver::{Resolve, RootResolver},
-        mir_expr_arena::DebugState,
     },
 };
 
+#[derive(Getters)]
+#[getset(get = "pub")]
 pub struct RootExpr<'id> {
-    arena: ExprArena<'id>,
-    root_node: ExprId<'id>,
+    arena: LazyExprArena<'id>,
+    root_node: ArenaId<'id>,
 }
 
 impl<'id> RootExpr<'id> {
     pub fn new(root: Root) -> Result<RootExpr<'id>, MirResolveError> {
-        let mut arena = ExprArena::new();
+        let mut arena = LazyExprArena::new();
 
         let root_resolver = RootResolver::new(&mut arena);
         let root_node = root
@@ -34,11 +37,15 @@ impl<'id> RootExpr<'id> {
     //         .get_unwrap(&self.arena)
     //         .eval(&EvalState::new(&self.arena))
     // }
+
+    pub fn into_parts(self) -> (LazyExprArena<'id>, ArenaId<'id>) {
+        (self.arena, self.root_node)
+    }
 }
 
 impl<'id> Debug for RootExpr<'id> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let mut debug_state = DebugState::new(&self.arena);
+        let mut debug_state = LazyDebugState::new(&self.arena);
         self.root_node.fmt_with(&mut debug_state, f)
     }
 }

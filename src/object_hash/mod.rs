@@ -1,4 +1,7 @@
+mod expr_type;
 mod graph;
+
+pub use expr_type::{OnceHashExpr, OnceHashRootExpr};
 
 use std::collections::BTreeMap;
 

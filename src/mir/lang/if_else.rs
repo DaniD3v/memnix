@@ -1,6 +1,6 @@
 use rnix::ast::IfElse;
 
-use crate::mir::{ExprArena, Intrinsic, LambdaCall, Resolve, Resolver, error::MirResolveError};
+use crate::mir::{Intrinsic, LambdaCall, LazyExprArena, Resolve, Resolver, error::MirResolveError};
 
 impl Resolve for IfElse {
     type Target<'a> = LambdaCall<'a>;
@@ -14,7 +14,7 @@ impl Resolve for IfElse {
     fn resolve<'bump>(
         self,
         resolver: &impl Resolver<'bump>,
-        bump: &mut ExprArena<'bump>,
+        bump: &mut LazyExprArena<'bump>,
     ) -> Result<LambdaCall<'bump>, MirResolveError> {
         let condition = self.condition().unwrap().resolve(resolver, bump)?;
 
