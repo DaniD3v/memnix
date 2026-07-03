@@ -56,9 +56,10 @@ impl<'id, T> LazyArena<'id, T> {
     /// to `ArenaId` references using the provided mapping closure.
     pub fn flatten<O>(
         self,
+        root: ArenaId<'id>,
         // TODO: fix this lifetime. the lifetime of the returned object should differ
         transform_idx: impl Fn(T, &dyn Fn(ArenaId<'id>) -> ArenaId<'id>) -> O,
-    ) -> Arena<'id, O> {
+    ) -> (Arena<'id, O>, ArenaId<'id>) {
         let mut new_arena = Arena::new(); // TODO: with_capacity
         let mut idx_mapping = vec![None; self.size()];
 
@@ -106,7 +107,8 @@ impl<'id, T> LazyArena<'id, T> {
                 new_arena[idx_mapping[idx].unwrap()] = Some(transform_idx(val, &resolve))
             });
 
-        new_arena.map(|val| val.unwrap())
+        let new_root = idx_mapping[root.idx()].unwrap();
+        (new_arena.map(|val| val.unwrap()), new_root)
     }
 
     fn flatten_ref(&self, mut idx: ArenaId<'id>) -> ArenaId<'id> {

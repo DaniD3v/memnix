@@ -15,13 +15,8 @@ pub struct OnceHashRootExpr<'id> {
 
 impl<'id> OnceHashRootExpr<'id> {
     pub fn from_mir_root(mir_root: RootExpr<'id>) -> Self {
-        let (arena, _) = mir_root.into_parts();
-
-        let hash_arena = arena.flatten(|expr, map| expr.with_expr(&map));
-        let root_node = hash_arena
-            .get_index_from(hash_arena.size() - 1)
-            .expect("`hash_arena` should contain at least one node");
-
+        let (arena, root_node) = mir_root.into_parts();
+        let (hash_arena, root_node) = arena.flatten(root_node, |expr, map| expr.with_expr(&map));
         Self {
             arena: hash_arena,
             root_node,
