@@ -2,12 +2,38 @@ use getset::Getters;
 use petgraph::{
     Directed,
     visit::{
-        Data, GraphBase, GraphProp, IntoEdgeReferences, IntoNeighbors, IntoNodeIdentifiers,
-        IntoNodeReferences, NodeIndexable,
+        Data, EdgeRef, GraphBase, GraphProp, IntoEdgeReferences, IntoNeighbors,
+        IntoNodeIdentifiers, IntoNodeReferences, NodeIndexable,
     },
 };
 
 use crate::{ArenaId, object_hash::OnceHashRootExpr};
+
+#[derive(Copy, Clone)]
+pub struct FieldEdgeRef<'a, 'id> {
+    pub source: ArenaId<'id>,
+    pub target: ArenaId<'id>,
+    pub field: &'a str,
+}
+
+impl<'a, 'id> EdgeRef for FieldEdgeRef<'a, 'id> {
+    type NodeId = ArenaId<'id>;
+    type EdgeId = (ArenaId<'id>, ArenaId<'id>);
+    type Weight = ();
+
+    fn source(&self) -> Self::NodeId {
+        self.source
+    }
+    fn target(&self) -> Self::NodeId {
+        self.target
+    }
+    fn weight(&self) -> &() {
+        &()
+    }
+    fn id(&self) -> Self::EdgeId {
+        (self.source, self.target)
+    }
+}
 
 // TODO make this generic or sth
 #[derive(Getters)]
@@ -42,10 +68,15 @@ impl<'id> IntoNodeIdentifiers for &ArenaBackedGraph<'id> {
 }
 
 impl<'id> IntoNeighbors for &ArenaBackedGraph<'id> {
-    type Neighbors = Box<dyn Iterator<Item = ArenaId<'id>> + 'id>;
+    type Neighbors = <Vec<ArenaId<'id>> as IntoIterator>::IntoIter;
 
     fn neighbors(self, node: Self::NodeId) -> Self::Neighbors {
-        self.root_node.arena()[node].expr().into_iter()
+        self.root_node.arena()[node]
+            .expr()
+            .children()
+            .map(|(id, _)| id)
+            .collect::<Vec<_>>()
+            .into_iter()
     }
 }
 
@@ -81,7 +112,7 @@ impl<'id> IntoNodeReferences for &ArenaBackedGraph<'id> {
 }
 
 impl<'id, 'a> IntoEdgeReferences for &'a ArenaBackedGraph<'id> {
-    type EdgeRef = (Self::NodeId, Self::NodeId, &'static ());
+    type EdgeRef = FieldEdgeRef<'a, 'id>;
     type EdgeReferences = Box<dyn Iterator<Item = Self::EdgeRef> + 'a>;
 
     fn edge_references(self) -> Self::EdgeReferences {
@@ -92,8 +123,12 @@ impl<'id, 'a> IntoEdgeReferences for &'a ArenaBackedGraph<'id> {
                 .flat_map(move |source| {
                     self.root_node.arena()[source]
                         .expr()
-                        .into_iter()
-                        .map(move |target| (source, target, &()))
+                        .children()
+                        .map(move |(target, field)| FieldEdgeRef {
+                            source,
+                            target,
+                            field,
+                        })
                 }),
         )
     }

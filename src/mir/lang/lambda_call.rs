@@ -1,5 +1,3 @@
-use std::array;
-
 use rnix::ast;
 
 use crate::{
@@ -35,6 +33,10 @@ impl<'b> MirLambdaCall<'b> {
             MirLambdaCall::new(inner, argument)
         }
     }
+
+    pub fn children(&self) -> [(ArenaId<'b>, &str); 2] {
+        [(*self.lambda(), "lambda"), (*self.argument(), "argument")]
+    }
 }
 
 impl Resolve for ast::Apply {
@@ -52,20 +54,11 @@ impl Resolve for ast::Apply {
     }
 }
 
-impl<'id> IntoIterator for &MirLambdaCall<'id> {
-    type Item = ArenaId<'id>;
-    type IntoIter = array::IntoIter<ArenaId<'id>, 2>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        [*self.lambda(), *self.argument()].into_iter()
-    }
-}
-
 // TODO: test this
 // 'b is invariant so we can only compare to
 // elements backed by the same bump allocator
 impl<'b> PartialEq for MirLambdaCall<'b> {
     fn eq(&self, other: &Self) -> bool {
-        self.into_iter().eq(other)
+        self.children() == other.children()
     }
 }

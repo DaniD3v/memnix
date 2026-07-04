@@ -1,5 +1,3 @@
-use std::iter;
-
 use rnix::ast;
 
 use crate::{
@@ -21,6 +19,10 @@ impl<'b> MirLambda<'b> {
         bump: &mut LazyExprArena<'b>,
     ) -> ArenaId<'b> {
         Self::at_depth(intrinsic, params, 0, bump)
+    }
+
+    pub fn children(&self) -> [(ArenaId<'b>, &str); 1] {
+        [(*self.body(), "body")]
     }
 
     fn at_depth(
@@ -66,15 +68,6 @@ impl Resolve for ast::Lambda {
         let body = self.body().unwrap().resolve(&body_resolver, bump)?;
 
         Ok(MirLambda::new(Param::new(&resolver), body))
-    }
-}
-
-impl<'id> IntoIterator for &MirLambda<'id> {
-    type Item = ArenaId<'id>;
-    type IntoIter = iter::Once<ArenaId<'id>>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        iter::once(*self.body())
     }
 }
 

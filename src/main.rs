@@ -46,13 +46,23 @@ fn main() {
             "{:?}",
             Dot::with_attr_getters(
                 &hashed_graph,
-                &[Config::EdgeNoLabel, Config::NodeIndexLabel],
-                &|_, _| "".to_owned(),
-                &|_, (idx, _)| {
+                &[Config::EdgeNoLabel, Config::NodeNoLabel],
+                &|_, edge_ref| format!("label = {:?}", edge_ref.field),
+                &|graph, (idx, _)| {
                     let debug_state = DebugState::new(hashed_graph.root_node().arena());
+
+                    let inner_expr = match graph.root_node().arena()[idx].expr() {
+                        mir::MirExpr::Literal(inner) => format!("{:?}", inner),
+                        mir::MirExpr::Param(inner) => format!("{:?}", inner),
+                        mir::MirExpr::Intrinsic(inner) => format!("{:?}", inner),
+
+                        mir::MirExpr::LambdaCall(_) => "LambdaCall".to_owned(),
+                        mir::MirExpr::Lambda(_) => "Lambda".to_owned(),
+                    };
+
                     format!(
-                        "tooltip=\"{:?}\"",
-                        DebugWithWrapper::new(&idx, &debug_state)
+                        "tooltip=\"{:?}\" label=\"{inner_expr}\"",
+                        DebugWithWrapper::new(&idx, &debug_state),
                     )
                 }
             )

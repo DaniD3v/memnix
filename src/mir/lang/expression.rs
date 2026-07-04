@@ -1,7 +1,4 @@
-use std::{
-    fmt::{Debug, Formatter},
-    iter,
-};
+use std::fmt::{Debug, Formatter};
 
 use rnix::ast;
 
@@ -58,16 +55,13 @@ impl Resolve for ast::Expr {
     }
 }
 
-impl<'id> IntoIterator for &MirExpr<'id> {
-    type Item = ArenaId<'id>;
-    type IntoIter = Box<dyn Iterator<Item = Self::Item> + 'id>;
-
-    fn into_iter(self) -> Self::IntoIter {
+impl<'id> MirExpr<'id> {
+    pub fn children(&self) -> Box<dyn Iterator<Item = (ArenaId<'id>, &str)> + '_> {
         match self {
-            MirExpr::LambdaCall(lambda_call) => Box::new(lambda_call.into_iter()),
-            MirExpr::Lambda(lambda) => Box::new(lambda.into_iter()),
+            Self::LambdaCall(lambda_call) => Box::new(lambda_call.children().into_iter()),
+            Self::Lambda(lambda) => Box::new(lambda.children().into_iter()),
 
-            _ => Box::new(iter::empty()),
+            _ => Box::new(std::iter::empty()),
         }
     }
 }
