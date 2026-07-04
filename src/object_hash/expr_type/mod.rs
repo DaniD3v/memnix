@@ -8,32 +8,23 @@ use crate::{
     Arena, ArenaId,
     arena::{DebugState, DebugWith},
     generic_lang::WithExprType,
-    mir::{MirExpr, RootExpr},
+    mir::MirExpr,
 };
 
+use getset::Getters;
 pub use root_node::OnceHashRootExpr;
 
 type TodoHash = ();
 
+#[derive(Getters)]
 pub struct OnceHashExpr<'id> {
+    #[get = "pub"]
     expr: MirExpr<'id>,
     hash: Option<TodoHash>,
 }
 
 type OnceHashExprId<'id> = ArenaId<'id>;
 type OnceHashExprArena<'id> = Arena<'id, OnceHashExpr<'id>>;
-
-impl<'id> OnceHashExpr<'id> {
-    pub fn from_mir_root<'p>(mir_expr: RootExpr<'p>) -> OnceHashExprId<'id> {
-        // let arena = Arena::new();
-
-        // mir_expr
-        //     .root_node()
-        //     .with_expr(&mut WithExprState::new(arena));
-
-        todo!()
-    }
-}
 
 impl<'p, 'n: 'p> WithExprType<'p, 'n, OnceHashExpr<'n>> for MirExpr<'p> {
     type State<'s>
@@ -70,7 +61,7 @@ impl<'p, 'n: 'p> WithExprType<'p, 'n, ArenaId<'n>> for ArenaId<'p> {
 impl<'id> DebugWith<DebugState<'id, '_, Arena<'id, OnceHashExpr<'id>>>> for OnceHashExpr<'id> {
     fn fmt_with(
         &self,
-        with: &mut DebugState<'id, '_, Arena<'id, OnceHashExpr<'id>>>,
+        with: &DebugState<'id, '_, Arena<'id, OnceHashExpr<'id>>>,
         f: &mut std::fmt::Formatter<'_>,
     ) -> std::fmt::Result {
         f.debug_struct("OnceHashExpr")
@@ -83,7 +74,7 @@ impl<'id> DebugWith<DebugState<'id, '_, Arena<'id, OnceHashExpr<'id>>>> for Once
 impl<'id> DebugWith<DebugState<'id, '_, Arena<'id, OnceHashExpr<'id>>>> for MirExpr<'id> {
     fn fmt_with(
         &self,
-        with: &mut DebugState<'id, '_, Arena<'id, OnceHashExpr<'id>>>,
+        with: &DebugState<'id, '_, Arena<'id, OnceHashExpr<'id>>>,
         f: &mut Formatter<'_>,
     ) -> std::fmt::Result {
         match self {

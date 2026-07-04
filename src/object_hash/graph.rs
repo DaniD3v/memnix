@@ -1,25 +1,41 @@
-use petgraph::visit::{GraphBase, IntoNeighbors, IntoNodeIdentifiers, NodeIndexable};
+use getset::Getters;
+use petgraph::{
+    Directed,
+    visit::{
+        Data, GraphBase, GraphProp, IntoEdgeReferences, IntoNeighbors, IntoNodeIdentifiers,
+        IntoNodeReferences, NodeIndexable,
+    },
+};
 
-use crate::{ArenaId, mir::LazyExprArena};
+use crate::{ArenaId, object_hash::OnceHashRootExpr};
 
-struct ArenaBackedGraph<'b> {
-    arena: LazyExprArena<'b>,
+// TODO make this generic or sth
+#[derive(Getters)]
+pub struct ArenaBackedGraph<'b> {
+    #[get = "pub"]
+    root_node: OnceHashRootExpr<'b>,
+}
+
+impl<'id> ArenaBackedGraph<'id> {
+    pub fn from_root_node(root_node: OnceHashRootExpr<'id>) -> Self {
+        Self { root_node }
+    }
 }
 
 // TODO: PartialEq for ArenaId is a bit goofy here, as this is a lazyArena
 // Switch it to use the proper arena that's owned
 impl<'b> GraphBase for ArenaBackedGraph<'b> {
     type NodeId = ArenaId<'b>;
-    type EdgeId = ();
+    type EdgeId = (ArenaId<'b>, ArenaId<'b>);
 }
 
 impl<'id> IntoNodeIdentifiers for &ArenaBackedGraph<'id> {
     type NodeIdentifiers = <Vec<ArenaId<'id>> as IntoIterator>::IntoIter;
 
-    // this iterates over all indices, not all values!
     fn node_identifiers(self) -> Self::NodeIdentifiers {
-        (0..self.arena.size())
-            .map(|i| self.from_index(i))
+        self.root_node
+            .arena()
+            .iter_indices()
             .collect::<Vec<_>>()
             .into_iter()
     }
@@ -29,13 +45,13 @@ impl<'id> IntoNeighbors for &ArenaBackedGraph<'id> {
     type Neighbors = Box<dyn Iterator<Item = ArenaId<'id>> + 'id>;
 
     fn neighbors(self, node: Self::NodeId) -> Self::Neighbors {
-        self.arena[node].into_iter()
+        self.root_node.arena()[node].expr().into_iter()
     }
 }
 
-impl<'b> NodeIndexable for ArenaBackedGraph<'b> {
+impl NodeIndexable for ArenaBackedGraph<'_> {
     fn node_bound(&self) -> usize {
-        self.arena.size()
+        self.root_node.arena().size()
     }
 
     fn to_index(&self, expr_id: Self::NodeId) -> usize {
@@ -43,8 +59,46 @@ impl<'b> NodeIndexable for ArenaBackedGraph<'b> {
     }
 
     fn from_index(&self, numeric_idx: usize) -> Self::NodeId {
-        self.arena
+        self.root_node
+            .arena()
             .get_index_from(numeric_idx)
             .expect("NodeIndexable: invalid index i provided")
     }
+}
+
+impl<'id> Data for ArenaBackedGraph<'id> {
+    type NodeWeight = ();
+    type EdgeWeight = ();
+}
+
+impl<'id> IntoNodeReferences for &ArenaBackedGraph<'id> {
+    type NodeRef = (Self::NodeId, ());
+    type NodeReferences = Box<dyn Iterator<Item = Self::NodeRef> + 'id>;
+
+    fn node_references(self) -> Self::NodeReferences {
+        Box::new(self.node_identifiers().map(|id| (id, ())))
+    }
+}
+
+impl<'id, 'a> IntoEdgeReferences for &'a ArenaBackedGraph<'id> {
+    type EdgeRef = (Self::NodeId, Self::NodeId, &'static ());
+    type EdgeReferences = Box<dyn Iterator<Item = Self::EdgeRef> + 'a>;
+
+    fn edge_references(self) -> Self::EdgeReferences {
+        Box::new(
+            self.root_node
+                .arena()
+                .iter_indices()
+                .flat_map(move |source| {
+                    self.root_node.arena()[source]
+                        .expr()
+                        .into_iter()
+                        .map(move |target| (source, target, &()))
+                }),
+        )
+    }
+}
+
+impl GraphProp for ArenaBackedGraph<'_> {
+    type EdgeType = Directed;
 }

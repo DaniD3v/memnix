@@ -7,7 +7,7 @@ use std::ops::{Deref, DerefMut, Index};
 
 use crate::{
     Arena, ArenaId,
-    arena::{DebugArena, DebugState},
+    arena::{DebugState, debug::DebugArena},
 };
 
 pub type LazyDebugState<'id, 'a, T> = DebugState<'id, 'a, LazyArena<'id, T>>;

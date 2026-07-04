@@ -89,7 +89,7 @@ impl<'b> PartialEq for MirExpr<'b> {
 impl<'id> DebugWith<LazyDebugState<'id, '_, MirExpr<'id>>> for MirExpr<'id> {
     fn fmt_with(
         &self,
-        with: &mut LazyDebugState<'id, '_, MirExpr<'id>>,
+        with: &LazyDebugState<'id, '_, MirExpr<'id>>,
         f: &mut Formatter<'_>,
     ) -> std::fmt::Result {
         match self {

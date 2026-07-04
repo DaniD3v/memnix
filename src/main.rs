@@ -1,8 +1,13 @@
 use std::{fs, path::PathBuf};
 
 use clap::Parser;
+use petgraph::dot::{Config, Dot};
 
-use crate::{mir::RootExpr, object_hash::OnceHashRootExpr};
+use crate::{
+    arena::{DebugState, DebugWithWrapper},
+    mir::RootExpr,
+    object_hash::{ArenaBackedGraph, OnceHashRootExpr},
+};
 
 pub mod arena;
 // mod eval; // TODO
@@ -32,6 +37,27 @@ fn main() {
 
     let hashed = OnceHashRootExpr::from_mir_root(mir_expr);
     println!("Hashed: {:#?}", hashed);
+
+    let hashed_graph = ArenaBackedGraph::from_root_node(hashed);
+
+    let _ = fs::write(
+        "out.dot",
+        format!(
+            "{:?}",
+            Dot::with_attr_getters(
+                &hashed_graph,
+                &[Config::EdgeNoLabel, Config::NodeIndexLabel],
+                &|_, _| "".to_owned(),
+                &|_, (idx, _)| {
+                    let debug_state = DebugState::new(hashed_graph.root_node().arena());
+                    format!(
+                        "tooltip=\"{:?}\"",
+                        DebugWithWrapper::new(&idx, &debug_state)
+                    )
+                }
+            )
+        ),
+    );
 
     // TODO
     // let eval = expr.eval().eval_thunk();

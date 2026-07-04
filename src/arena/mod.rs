@@ -9,8 +9,10 @@ use std::{
 
 use getset::CopyGetters;
 
-pub use debug::{DebugArena, DebugState, DebugWith};
+pub use debug::{DebugState, DebugWith, DebugWithWrapper};
 pub use lazy_arena::{LazyArena, LazyDebugState};
+
+use crate::arena::debug::DebugArena;
 
 #[derive(Debug)]
 pub struct Arena<'id, T> {
@@ -62,6 +64,13 @@ impl<'id, T> Arena<'id, T> {
         })
     }
 
+    pub fn iter_indices(&self) -> impl Iterator<Item = ArenaId<'id>> + 'id {
+        (0..self.inner.len()).map(|idx| ArenaId {
+            idx,
+            _id_invariant: PhantomData,
+        })
+    }
+
     pub fn size(&self) -> usize {
         self.inner.len()
     }
@@ -82,6 +91,22 @@ impl<'id, T> Index<ArenaId<'id>> for Arena<'id, T> {
 impl<'id, T> IndexMut<ArenaId<'id>> for Arena<'id, T> {
     fn index_mut(&mut self, index: ArenaId<'id>) -> &mut Self::Output {
         &mut self.inner[index.idx()]
+    }
+}
+
+impl<'id, T> DebugArena<'id> for Arena<'id, T> {
+    type Item = T;
+
+    fn canonical_idx(&self, id: ArenaId<'id>) -> usize {
+        id.idx()
+    }
+
+    fn get(&self, id: ArenaId<'id>) -> &T {
+        &self[id]
+    }
+
+    fn size(&self) -> usize {
+        self.size()
     }
 }
 

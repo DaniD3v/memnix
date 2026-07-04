@@ -34,7 +34,7 @@ impl<'p, 'n, From: WithExprType<'p, 'n, To>, To> WithExprType<'p, 'n, GenericLam
 }
 
 impl<T, E: DebugWith<T>> DebugWith<T> for GenericLambdaCall<E> {
-    fn fmt_with(&self, with: &mut T, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt_with(&self, with: &T, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("LambdaCall")
             .field("lambda", &self.lambda().as_wrapper(with))
             .field("argument", &self.argument().as_wrapper(with))
