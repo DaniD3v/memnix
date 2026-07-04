@@ -40,7 +40,7 @@ impl<'p, 'n: 'p> WithExprType<'p, 'n, OnceHashExpr<'n>> for MirExpr<'p> {
 
                 Self::Literal(inner) => MirExpr::Literal(inner.clone()),
                 Self::Param(inner) => MirExpr::Param(inner.clone()),
-                Self::Intrinsic(inner) => MirExpr::Intrinsic(inner.clone()),
+                Self::Intrinsic(inner) => MirExpr::Intrinsic(*inner),
             },
             hash: None,
         }

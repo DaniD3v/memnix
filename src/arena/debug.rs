@@ -11,10 +11,7 @@ pub trait DebugWith<T>: Sized {
     fn fmt_with(&self, with: &T, f: &mut Formatter<'_>) -> std::fmt::Result;
 
     fn as_wrapper<'a>(&'a self, with: &'a T) -> DebugWithWrapper<'a, T, Self> {
-        DebugWithWrapper {
-            inner: self,
-            with: with,
-        }
+        DebugWithWrapper { inner: self, with }
     }
 }
 

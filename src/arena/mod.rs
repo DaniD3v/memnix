@@ -29,6 +29,12 @@ pub struct ArenaId<'id> {
     _id_invariant: PhantomData<fn(&'id ()) -> &'id ()>,
 }
 
+impl<'id, T> Default for Arena<'id, T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'id, T> Arena<'id, T> {
     // TODO add generativity id
     pub fn new() -> Self {

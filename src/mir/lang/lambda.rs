@@ -21,8 +21,8 @@ impl<'b> MirLambda<'b> {
         Self::at_depth(intrinsic, params, 0, bump)
     }
 
-    pub fn children(&self) -> [(ArenaId<'b>, &str); 1] {
-        [(*self.body(), "body")]
+    pub fn children(&self) -> impl Iterator<Item = (ArenaId<'b>, &str)> {
+        [(*self.body(), "body")].into_iter()
     }
 
     fn at_depth(

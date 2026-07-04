@@ -34,8 +34,8 @@ impl<'b> MirLambdaCall<'b> {
         }
     }
 
-    pub fn children(&self) -> [(ArenaId<'b>, &str); 2] {
-        [(*self.lambda(), "lambda"), (*self.argument(), "argument")]
+    pub fn children(&self) -> impl Iterator<Item = (ArenaId<'b>, &str)> {
+        [(*self.lambda(), "lambda"), (*self.argument(), "argument")].into_iter()
     }
 }
 
@@ -59,6 +59,6 @@ impl Resolve for ast::Apply {
 // elements backed by the same bump allocator
 impl<'b> PartialEq for MirLambdaCall<'b> {
     fn eq(&self, other: &Self) -> bool {
-        self.children() == other.children()
+        self.children().eq(other.children())
     }
 }

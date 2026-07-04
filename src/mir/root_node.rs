@@ -45,7 +45,7 @@ impl<'id> RootExpr<'id> {
 
 impl<'id> Debug for RootExpr<'id> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let mut debug_state = LazyDebugState::new(&self.arena);
-        self.root_node.fmt_with(&mut debug_state, f)
+        let debug_state = LazyDebugState::new(&self.arena);
+        self.root_node.fmt_with(&debug_state, f)
     }
 }

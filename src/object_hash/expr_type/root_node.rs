@@ -33,7 +33,7 @@ impl<'id> OnceHashRootExpr<'id> {
 
 impl Debug for OnceHashRootExpr<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut debug_state = DebugState::new(&self.arena);
-        self.root_node.fmt_with(&mut debug_state, f)
+        let debug_state = DebugState::new(&self.arena);
+        self.root_node.fmt_with(&debug_state, f)
     }
 }

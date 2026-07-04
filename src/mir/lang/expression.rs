@@ -58,8 +58,8 @@ impl Resolve for ast::Expr {
 impl<'id> MirExpr<'id> {
     pub fn children(&self) -> Box<dyn Iterator<Item = (ArenaId<'id>, &str)> + '_> {
         match self {
-            Self::LambdaCall(lambda_call) => Box::new(lambda_call.children().into_iter()),
-            Self::Lambda(lambda) => Box::new(lambda.children().into_iter()),
+            Self::LambdaCall(lambda_call) => Box::new(lambda_call.children()),
+            Self::Lambda(lambda) => Box::new(lambda.children()),
 
             _ => Box::new(std::iter::empty()),
         }

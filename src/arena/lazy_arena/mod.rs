@@ -28,6 +28,12 @@ pub enum MaybeOrRef<'id, S> {
 }
 
 // TODO: check for correctness errors because of partialeq based on idx
+impl<'id, T> Default for LazyArena<'id, T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'id, T> LazyArena<'id, T> {
     pub fn new() -> Self {
         Self(Arena::new())
