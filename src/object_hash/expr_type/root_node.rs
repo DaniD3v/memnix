@@ -1,6 +1,6 @@
 use std::fmt::{self, Debug, Formatter};
 
-use getset::{CopyGetters, Getters};
+use getset::{CopyGetters, Getters, MutGetters};
 
 use crate::{
     Arena,
@@ -10,9 +10,10 @@ use crate::{
     object_hash::{OnceHashExpr, expr_type::OnceHashExprId},
 };
 
-#[derive(Getters, CopyGetters)]
+#[derive(Getters, MutGetters, CopyGetters)]
 pub struct OnceHashRootExpr<'id> {
     #[get = "pub"]
+    #[get_mut = "pub"]
     arena: Arena<'id, OnceHashExpr<'id>>,
 
     #[get_copy = "pub"]

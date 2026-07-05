@@ -1,7 +1,9 @@
 mod debug;
 mod lazy_arena;
 
+use core::fmt;
 use std::{
+    fmt::{Debug, Formatter},
     marker::PhantomData,
     ops::{Index, IndexMut},
     slice, vec,
@@ -135,5 +137,11 @@ impl<'id> Clone for ArenaId<'id> {
 impl<'id> PartialEq for ArenaId<'id> {
     fn eq(&self, other: &Self) -> bool {
         self.idx == other.idx
+    }
+}
+
+impl Debug for ArenaId<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("ArenaId").field(&self.idx()).finish()
     }
 }

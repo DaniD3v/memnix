@@ -1,12 +1,10 @@
 use std::{fs, path::PathBuf};
 
 use clap::Parser;
-use petgraph::dot::{Config, Dot};
 
 use crate::{
-    arena::{DebugState, DebugWithWrapper},
     mir::RootExpr,
-    object_hash::{ArenaBackedGraph, OnceHashRootExpr},
+    object_hash::{ArenaBackedGraph, AsDot, OnceHashRootExpr, hash_graph},
 };
 
 pub mod arena;
@@ -35,39 +33,12 @@ fn main() {
     let mir_expr = RootExpr::new(root).unwrap();
     println!("Mir: {:#?}", mir_expr);
 
-    let hashed = OnceHashRootExpr::from_mir_root(mir_expr);
-    println!("Hashed: {:#?}", hashed);
+    let mut hashed_graph =
+        ArenaBackedGraph::from_root_node(OnceHashRootExpr::from_mir_root(mir_expr));
+    hash_graph(&mut hashed_graph);
 
-    let hashed_graph = ArenaBackedGraph::from_root_node(hashed);
-
-    let _ = fs::write(
-        "out.dot",
-        format!(
-            "{:?}",
-            Dot::with_attr_getters(
-                &hashed_graph,
-                &[Config::EdgeNoLabel, Config::NodeNoLabel],
-                &|_, edge_ref| format!("label = {:?}", edge_ref.field),
-                &|graph, (idx, _)| {
-                    let debug_state = DebugState::new(hashed_graph.root_node().arena());
-
-                    let inner_expr = match graph.root_node().arena()[idx].expr() {
-                        mir::MirExpr::Literal(inner) => format!("{:?}", inner),
-                        mir::MirExpr::Param(inner) => format!("{:?}", inner),
-                        mir::MirExpr::Intrinsic(inner) => format!("{:?}", inner),
-
-                        mir::MirExpr::LambdaCall(_) => "LambdaCall".to_owned(),
-                        mir::MirExpr::Lambda(_) => "Lambda".to_owned(),
-                    };
-
-                    format!(
-                        "tooltip=\"{:?}\" label=\"{inner_expr}\"",
-                        DebugWithWrapper::new(&idx, &debug_state),
-                    )
-                }
-            )
-        ),
-    );
+    let _ = fs::write("out.dot", format!("{:?}", AsDot(&hashed_graph)));
+    println!("Hashed: {:#?}", hashed_graph.root_node());
 
     // TODO
     // let eval = expr.eval().eval_thunk();

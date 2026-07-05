@@ -12,6 +12,8 @@ use crate::{
     },
 };
 
+// TODO: already swap out the LazyExprArena here instead of in the conversion to the sem hash arena
+
 #[derive(Getters)]
 #[getset(get = "pub")]
 pub struct RootExpr<'id> {

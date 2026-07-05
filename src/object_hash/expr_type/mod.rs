@@ -2,7 +2,12 @@
 
 mod root_node;
 
-use std::fmt::{Debug, Formatter};
+pub use root_node::OnceHashRootExpr;
+
+use std::{
+    cmp::Ordering,
+    fmt::{Debug, Formatter},
+};
 
 use crate::{
     Arena, ArenaId,
@@ -11,16 +16,41 @@ use crate::{
     mir::MirExpr,
 };
 
-use getset::Getters;
-pub use root_node::OnceHashRootExpr;
+use getset::{Getters, MutGetters};
 
-type TodoHash = ();
+#[derive(Copy, Clone, Eq, PartialEq)]
+pub struct Color(pub blake3::Hash);
 
-#[derive(Getters)]
+impl Color {
+    pub fn as_bytes(&self) -> &[u8; 32] {
+        self.0.as_bytes()
+    }
+}
+
+impl Ord for Color {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.as_bytes().cmp(other.as_bytes())
+    }
+}
+impl PartialOrd for Color {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Debug for Color {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Color({})", self.0)
+    }
+}
+
+#[derive(Getters, MutGetters)]
 pub struct OnceHashExpr<'id> {
     #[get = "pub"]
     expr: MirExpr<'id>,
-    hash: Option<TodoHash>,
+    #[get = "pub"]
+    #[get_mut = "pub"]
+    color: Option<Color>,
 }
 
 type OnceHashExprId<'id> = ArenaId<'id>;
@@ -42,7 +72,7 @@ impl<'p, 'n: 'p> WithExprType<'p, 'n, OnceHashExpr<'n>> for MirExpr<'p> {
                 Self::Param(inner) => MirExpr::Param(inner.clone()),
                 Self::Intrinsic(inner) => MirExpr::Intrinsic(*inner),
             },
-            hash: None,
+            color: None,
         }
     }
 }
@@ -66,7 +96,7 @@ impl<'id> DebugWith<DebugState<'id, '_, Arena<'id, OnceHashExpr<'id>>>> for Once
     ) -> std::fmt::Result {
         f.debug_struct("OnceHashExpr")
             .field("expr", &self.expr.as_wrapper(with))
-            .field("hash", &self.hash)
+            .field("hash", &self.color)
             .finish()
     }
 }
