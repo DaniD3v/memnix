@@ -1,11 +1,4 @@
-mod color_impl;
-mod expr_type;
-mod graph;
-
 use std::collections::BTreeMap;
-
-pub use expr_type::{Color, OnceHashExpr, OnceHashRootExpr};
-pub use graph::{ArenaBackedGraph, AsDot};
 
 use petgraph::{
     Direction,
@@ -14,9 +7,12 @@ use petgraph::{
     visit::{Dfs, IntoNeighbors, NodeIndexable},
 };
 
-use crate::{Arena, ArenaId};
+use crate::{
+    ArenaId,
+    coloring::{ArenaBackedGraph, Colorable, expr::ColoredExprArena},
+};
 
-pub fn hash_graph<'id, 'a>(graph: &'a mut ArenaBackedGraph<'id>) {
+pub fn color_graph<'id, 'a>(graph: &'a mut ArenaBackedGraph<'id>) {
     let scc_list = tarjan_scc(&*graph);
     let mut node_to_scc = vec![usize::MAX; graph.node_bound()];
 
@@ -56,7 +52,7 @@ pub fn hash_graph<'id, 'a>(graph: &'a mut ArenaBackedGraph<'id>) {
     }
 }
 
-fn color_refinement<'id>(arena: &mut Arena<'id, OnceHashExpr<'id>>, scc: &[ArenaId<'id>]) {
+fn color_refinement<'id>(arena: &mut ColoredExprArena<'id>, scc: &[ArenaId<'id>]) {
     let mut previous_distinct_colors = 0;
 
     loop {
@@ -90,25 +86,5 @@ fn color_refinement<'id>(arena: &mut Arena<'id, OnceHashExpr<'id>>, scc: &[Arena
             );
             previous_distinct_colors = distinct_colors;
         }
-    }
-}
-
-/// Uniquely identifies a nix object.
-///
-/// Objects sharing the same color must be semantically equivalent.
-/// They must thus include the hashes of all their dependencies.
-pub trait Colorable<'id>: Sized {
-    /// Depend on this object's color.
-    ///
-    /// Implementation Detail:
-    ///   The colors of objects of 2 different types must never be equal.
-    ///   This means the color must include some sort of type id.
-    fn depend_on(self, hasher: &mut blake3::Hasher, arena: &Arena<'id, OnceHashExpr>);
-
-    fn compute_color(self, arena: &Arena<'id, OnceHashExpr>) -> Color {
-        let mut hasher = blake3::Hasher::new();
-        self.depend_on(&mut hasher, arena);
-
-        Color(hasher.finalize())
     }
 }

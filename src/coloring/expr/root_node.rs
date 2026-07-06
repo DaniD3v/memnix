@@ -3,24 +3,24 @@ use std::fmt::{self, Debug, Formatter};
 use getset::{CopyGetters, Getters, MutGetters};
 
 use crate::{
-    Arena,
+    ArenaId,
     arena::{DebugState, DebugWith},
+    coloring::expr::ColoredExprArena,
     generic_lang::WithExprType,
     mir::RootExpr,
-    object_hash::{OnceHashExpr, expr_type::OnceHashExprId},
 };
 
 #[derive(Getters, MutGetters, CopyGetters)]
-pub struct OnceHashRootExpr<'id> {
+pub struct ColorableRootExpr<'id> {
     #[get = "pub"]
     #[get_mut = "pub"]
-    arena: Arena<'id, OnceHashExpr<'id>>,
+    arena: ColoredExprArena<'id>,
 
     #[get_copy = "pub"]
-    root_node: OnceHashExprId<'id>,
+    root_node: ArenaId<'id>,
 }
 
-impl<'id> OnceHashRootExpr<'id> {
+impl<'id> ColorableRootExpr<'id> {
     pub fn from_mir_root(mir_root: RootExpr<'id>) -> Self {
         let (arena, root_node) = mir_root.into_parts();
         let (hash_arena, root_node) = arena.flatten(root_node, |expr, map| expr.with_expr(&map));
@@ -32,7 +32,7 @@ impl<'id> OnceHashRootExpr<'id> {
     }
 }
 
-impl Debug for OnceHashRootExpr<'_> {
+impl Debug for ColorableRootExpr<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let debug_state = DebugState::new(&self.arena);
         self.root_node.fmt_with(&debug_state, f)

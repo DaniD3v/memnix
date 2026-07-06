@@ -2,12 +2,12 @@ use blake3::Hasher;
 
 use crate::{
     Arena, ArenaId,
+    coloring::{Colorable, ColoredExpr},
     mir::{Intrinsic, Literal, MirExpr, MirLambda, MirLambdaCall, Param},
-    object_hash::{Colorable, OnceHashExpr},
 };
 
 impl<'id> Colorable<'id> for &MirExpr<'id> {
-    fn depend_on(self, hasher: &mut Hasher, arena: &Arena<'id, OnceHashExpr<'_>>) {
+    fn depend_on(self, hasher: &mut Hasher, arena: &Arena<'id, ColoredExpr<'_>>) {
         match self {
             MirExpr::LambdaCall(inner) => inner.depend_on(hasher, arena),
             MirExpr::Lambda(inner) => inner.depend_on(hasher, arena),
@@ -20,7 +20,7 @@ impl<'id> Colorable<'id> for &MirExpr<'id> {
 }
 
 impl<'id> Colorable<'id> for ArenaId<'id> {
-    fn depend_on(self, hasher: &mut Hasher, arena: &Arena<'id, OnceHashExpr<'_>>) {
+    fn depend_on(self, hasher: &mut Hasher, arena: &Arena<'id, ColoredExpr<'_>>) {
         let bytes: &[u8] = match arena[self].color() {
             Some(color) => color.as_bytes(),
             None => b"none_placeholder",
@@ -31,7 +31,7 @@ impl<'id> Colorable<'id> for ArenaId<'id> {
 }
 
 impl<'id> Colorable<'id> for &MirLambdaCall<'id> {
-    fn depend_on(self, hasher: &mut Hasher, arena: &Arena<'id, OnceHashExpr<'_>>) {
+    fn depend_on(self, hasher: &mut Hasher, arena: &Arena<'id, ColoredExpr<'_>>) {
         hasher.update(b"lambda_call");
 
         self.children().for_each(|(idx, label)| {
@@ -42,7 +42,7 @@ impl<'id> Colorable<'id> for &MirLambdaCall<'id> {
 }
 
 impl<'id> Colorable<'id> for &MirLambda<'id> {
-    fn depend_on(self, hasher: &mut Hasher, arena: &Arena<'id, OnceHashExpr<'_>>) {
+    fn depend_on(self, hasher: &mut Hasher, arena: &Arena<'id, ColoredExpr<'_>>) {
         hasher.update(b"lambda");
 
         self.children().for_each(|(idx, label)| {
@@ -53,7 +53,7 @@ impl<'id> Colorable<'id> for &MirLambda<'id> {
 }
 
 impl<'id> Colorable<'id> for Literal {
-    fn depend_on(self, hasher: &mut Hasher, _: &Arena<'id, OnceHashExpr<'_>>) {
+    fn depend_on(self, hasher: &mut Hasher, _: &Arena<'id, ColoredExpr<'_>>) {
         hasher.update(b"literal");
 
         match self {
@@ -68,14 +68,14 @@ impl<'id> Colorable<'id> for Literal {
 }
 
 impl<'id> Colorable<'id> for Param {
-    fn depend_on(self, hasher: &mut blake3::Hasher, _: &Arena<'id, OnceHashExpr>) {
+    fn depend_on(self, hasher: &mut blake3::Hasher, _: &Arena<'id, ColoredExpr>) {
         hasher.update(b"param");
         hasher.update(&self.nesting_depth().to_le_bytes());
     }
 }
 
 impl<'id> Colorable<'id> for Intrinsic {
-    fn depend_on(self, hasher: &mut blake3::Hasher, _: &Arena<'id, OnceHashExpr>) {
+    fn depend_on(self, hasher: &mut blake3::Hasher, _: &Arena<'id, ColoredExpr>) {
         hasher.update(b"intrinsic");
         hasher.update(&[self as u8]);
     }

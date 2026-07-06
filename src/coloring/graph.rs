@@ -11,53 +11,28 @@ use petgraph::{
 };
 
 use crate::{
-    Arena, ArenaId,
+    ArenaId,
+    coloring::{ColorableRootExpr, expr::ColoredExprArena},
     mir::MirExpr,
-    object_hash::{OnceHashExpr, OnceHashRootExpr},
 };
 
 // TODO make this generic or sth
 #[derive(Getters, MutGetters)]
 pub struct ArenaBackedGraph<'b> {
     #[get = "pub"]
-    root_node: OnceHashRootExpr<'b>,
-}
-
-pub struct AsDot<'a, 'id>(pub &'a ArenaBackedGraph<'id>);
-
-impl fmt::Debug for AsDot<'_, '_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let dot = Dot::with_attr_getters(
-            self.0,
-            &[Config::EdgeNoLabel, Config::NodeNoLabel],
-            &|_, edge_ref| format!("label = {:?}", edge_ref.field),
-            &|graph, (idx, _)| {
-                let inner_expr = match graph.arena()[idx].expr() {
-                    MirExpr::Literal(inner) => &format!("{:?}", inner),
-                    MirExpr::Param(inner) => &format!("{:?}", inner),
-                    MirExpr::Intrinsic(inner) => &format!("{:?}", inner),
-                    MirExpr::LambdaCall(_) => "LambdaCall",
-                    MirExpr::Lambda(_) => "Lambda",
-                };
-                let inner_expr = format!("{}: {}", idx.idx(), inner_expr);
-
-                format!("label=\"{inner_expr}\"",)
-            },
-        );
-        write!(f, "{:?}", dot)
-    }
+    root_node: ColorableRootExpr<'b>,
 }
 
 impl<'id> ArenaBackedGraph<'id> {
-    pub fn from_root_node(root_node: OnceHashRootExpr<'id>) -> Self {
+    pub fn from_root_node(root_node: ColorableRootExpr<'id>) -> Self {
         Self { root_node }
     }
 
-    pub fn arena(&self) -> &Arena<'id, OnceHashExpr<'id>> {
+    pub fn arena(&self) -> &ColoredExprArena<'id> {
         self.root_node.arena()
     }
 
-    pub fn arena_mut(&mut self) -> &mut Arena<'id, OnceHashExpr<'id>> {
+    pub fn arena_mut(&mut self) -> &mut ColoredExprArena<'id> {
         self.root_node.arena_mut()
     }
 }
@@ -65,6 +40,11 @@ impl<'id> ArenaBackedGraph<'id> {
 impl<'b> GraphBase for ArenaBackedGraph<'b> {
     type NodeId = ArenaId<'b>;
     type EdgeId = (ArenaId<'b>, ArenaId<'b>);
+}
+
+impl<'id> Data for ArenaBackedGraph<'id> {
+    type NodeWeight = ();
+    type EdgeWeight = ();
 }
 
 impl<'id> IntoNodeIdentifiers for &ArenaBackedGraph<'id> {
@@ -109,11 +89,6 @@ impl NodeIndexable for ArenaBackedGraph<'_> {
     }
 }
 
-impl<'id> Data for ArenaBackedGraph<'id> {
-    type NodeWeight = ();
-    type EdgeWeight = ();
-}
-
 impl<'id> IntoNodeReferences for &ArenaBackedGraph<'id> {
     type NodeRef = (Self::NodeId, ());
     type NodeReferences = Box<dyn Iterator<Item = Self::NodeRef> + 'id>;
@@ -146,6 +121,35 @@ impl<'id, 'a> IntoEdgeReferences for &'a ArenaBackedGraph<'id> {
     }
 }
 
+impl GraphProp for ArenaBackedGraph<'_> {
+    type EdgeType = Directed;
+}
+
+pub struct AsDot<'a, 'id>(pub &'a ArenaBackedGraph<'id>);
+
+impl fmt::Debug for AsDot<'_, '_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let dot = Dot::with_attr_getters(
+            self.0,
+            &[Config::EdgeNoLabel, Config::NodeNoLabel],
+            &|_, edge_ref| format!("label = {:?}", edge_ref.field),
+            &|graph, (idx, _)| {
+                let inner_expr = match graph.arena()[idx].expr() {
+                    MirExpr::Literal(inner) => &format!("{:?}", inner),
+                    MirExpr::Param(inner) => &format!("{:?}", inner),
+                    MirExpr::Intrinsic(inner) => &format!("{:?}", inner),
+                    MirExpr::LambdaCall(_) => "LambdaCall",
+                    MirExpr::Lambda(_) => "Lambda",
+                };
+                let inner_expr = format!("{}: {}", idx.idx(), inner_expr);
+
+                format!("label=\"{inner_expr}\"",)
+            },
+        );
+        write!(f, "{:?}", dot)
+    }
+}
+
 #[derive(Copy, Clone)]
 pub struct FieldEdgeRef<'a, 'id> {
     pub source: ArenaId<'id>,
@@ -170,8 +174,4 @@ impl<'a, 'id> EdgeRef for FieldEdgeRef<'a, 'id> {
     fn id(&self) -> Self::EdgeId {
         (self.source, self.target)
     }
-}
-
-impl GraphProp for ArenaBackedGraph<'_> {
-    type EdgeType = Directed;
 }

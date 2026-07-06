@@ -3,15 +3,15 @@ use std::{fs, path::PathBuf};
 use clap::Parser;
 
 use crate::{
+    coloring::{ArenaBackedGraph, AsDot, ColorableRootExpr, color_graph},
     mir::RootExpr,
-    object_hash::{ArenaBackedGraph, AsDot, OnceHashRootExpr, hash_graph},
 };
 
 pub mod arena;
 // mod eval; // TODO
+pub mod coloring;
 pub mod generic_lang;
 pub mod mir;
-pub mod object_hash;
 
 pub use arena::{Arena, ArenaId};
 
@@ -34,8 +34,8 @@ fn main() {
     println!("Mir: {:#?}", mir_expr);
 
     let mut hashed_graph =
-        ArenaBackedGraph::from_root_node(OnceHashRootExpr::from_mir_root(mir_expr));
-    hash_graph(&mut hashed_graph);
+        ArenaBackedGraph::from_root_node(ColorableRootExpr::from_mir_root(mir_expr));
+    color_graph(&mut hashed_graph);
 
     let _ = fs::write("out.dot", format!("{:?}", AsDot(&hashed_graph)));
     println!("Hashed: {:#?}", hashed_graph.root_node());
