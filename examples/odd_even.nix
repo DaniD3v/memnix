@@ -1,0 +1,5 @@
+let
+  even = (n: if n <= 0 then 1 else odd (n - 1));
+  odd = (n: if n <= 0 then 0 else even (n - 1));
+in
+even 4
