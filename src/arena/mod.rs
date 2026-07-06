@@ -24,7 +24,7 @@ pub struct Arena<'id, T> {
 
 /// An `ArenaId` is an index into the `Arena` with the lifetime `id`.
 /// The id cannot be an invalid index.
-#[derive(CopyGetters)]
+#[derive(CopyGetters, Ord, PartialOrd, Eq, PartialEq)]
 pub struct ArenaId<'id> {
     #[getset(get_copy = "pub")]
     idx: usize,
@@ -131,12 +131,6 @@ impl<'id> Copy for ArenaId<'id> {}
 impl<'id> Clone for ArenaId<'id> {
     fn clone(&self) -> Self {
         *self
-    }
-}
-
-impl<'id> PartialEq for ArenaId<'id> {
-    fn eq(&self, other: &Self) -> bool {
-        self.idx == other.idx
     }
 }
 

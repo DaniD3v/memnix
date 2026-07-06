@@ -47,7 +47,7 @@ impl<'id, T> LazyArena<'id, T> {
         self.deref_mut().alloc(MaybeOrRef::Deferred)
     }
 
-    pub fn replace_none_with_ref(&mut self, idx: ArenaId<'id>, reference: ArenaId<'id>) {
+    pub fn fill_deferred(&mut self, idx: ArenaId<'id>, reference: ArenaId<'id>) {
         let reference = self.flatten_ref(reference);
 
         let ret = std::mem::replace(&mut self.deref_mut()[idx], MaybeOrRef::Ref(reference));
@@ -78,7 +78,7 @@ impl<'id, T> LazyArena<'id, T> {
                 MaybeOrRef::Ref(_) => false,
 
                 MaybeOrRef::Deferred => {
-                    panic!("LazyMap: attempted to flatten with unresolved deferred values")
+                    panic!("LazyArena: attempted to flatten with unresolved deferred values")
                 }
             })
             .for_each(|(idx, _)| idx_mapping[idx] = Some(new_arena.alloc(None)));
@@ -117,14 +117,16 @@ impl<'id, T> LazyArena<'id, T> {
         (new_arena.map(|val| val.unwrap()), new_root)
     }
 
-    fn flatten_ref(&self, mut idx: ArenaId<'id>) -> ArenaId<'id> {
-        // TODO:
-        // this doesn't have to be a loop as the reference
-        // itself can also only be 1 reference deep
-        while let MaybeOrRef::Ref(value) = self.0[idx] {
-            idx = value;
+    fn flatten_ref(&self, idx: ArenaId<'id>) -> ArenaId<'id> {
+        if let MaybeOrRef::Ref(target) = self.0[idx] {
+            debug_assert!(
+                !matches!(self.0[target], MaybeOrRef::Ref(_)),
+                "invariant violated: ref points to another ref"
+            );
+            target
+        } else {
+            idx
         }
-        idx
     }
 }
 

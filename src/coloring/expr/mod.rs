@@ -54,9 +54,9 @@ impl<'id> DebugWith<DebugState<'id, '_, ColoredExprArena<'id>>> for ColoredExpr<
         with: &DebugState<'id, '_, ColoredExprArena<'id>>,
         f: &mut std::fmt::Formatter<'_>,
     ) -> std::fmt::Result {
-        f.debug_struct("OnceHashExpr")
+        f.debug_struct("ColoredExpr")
             .field("expr", &self.expr.as_wrapper(with))
-            .field("hash", &self.color)
+            .field("color", &self.color)
             .finish()
     }
 }

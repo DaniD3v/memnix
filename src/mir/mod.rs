@@ -5,7 +5,6 @@ mod error;
 mod ident_resolver;
 mod intrinsic;
 mod lang;
-mod mir_expr_arena;
 mod root_node;
 
 pub use error::MirResolveError;

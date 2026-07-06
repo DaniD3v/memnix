@@ -26,7 +26,7 @@ impl Resolve for ast::LetIn {
         // e.g. `let x=1; x=2; in x`
         for (k, expr) in iter_let_in(&self) {
             let resolved = expr.resolve(&resolver, arena)?;
-            arena.replace_none_with_ref(bindings[k.as_ref()], resolved);
+            arena.fill_deferred(bindings[k.as_ref()], resolved);
         }
 
         self.body().unwrap().resolve(&resolver, arena)

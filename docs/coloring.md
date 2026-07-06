@@ -68,10 +68,12 @@ other expressions:
 (n - 1)  -> n
 ```
 
-We now have to do `n - 1` color refinement passes.
+We now have to do `n` color refinement passes.
 
 We cannot simply wait for stabilization because that would not
 guarantee that a node depends on all of its children nodes.
+
+Pass 0: Trivial Color
 
 Pass 1:
 ```
@@ -113,7 +115,7 @@ SCC(even, odd) children:
 
 => refine SCC(even, odd) (n=2)
 
-Pass 1 (final pass because 1 == (n - 1)):
+Pass 1 (final pass):
 ```
 even_1 -> odd_0
 odd_1  -> even_0

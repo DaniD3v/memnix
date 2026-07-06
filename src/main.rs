@@ -33,12 +33,12 @@ fn main() {
     let mir_expr = RootExpr::new(root).unwrap();
     println!("Mir: {:#?}", mir_expr);
 
-    let mut hashed_graph =
+    let mut colored_graph =
         ArenaBackedGraph::from_root_node(ColorableRootExpr::from_mir_root(mir_expr));
-    color_graph(&mut hashed_graph);
+    color_graph(&mut colored_graph);
 
-    let _ = fs::write("out.dot", format!("{:?}", AsDot(&hashed_graph)));
-    println!("Hashed: {:#?}", hashed_graph.root_node());
+    let _ = fs::write("out.dot", format!("{:?}", AsDot(&colored_graph)));
+    println!("Hashed: {:#?}", colored_graph.root_node());
 
     // TODO
     // let eval = expr.eval().eval_thunk();
