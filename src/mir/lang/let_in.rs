@@ -1,13 +1,20 @@
 use rnix::ast::{self, HasEntry};
 
 use crate::{
-    ArenaId,
-    mir::{Ident, LazyExprArena, LazyMapResolver, Resolve, Resolver, error::MirResolveError},
+    arena::LazyArenaId,
+    mir::{
+        Ident,
+        error::MirResolveError,
+        ident_resolver::{LazyMapResolver, Resolve, Resolver},
+        lang::LazyExprArena,
+    },
 };
 
 impl Resolve for ast::LetIn {
-    type Target<'bump> = ArenaId<'bump>;
+    type Target<'bump> = LazyArenaId<'bump>;
 
+    // TODO: make this resolver lazy.
+    // track visited entries and only allocate a deferred if node was already visited
     fn resolve<'bump>(
         self,
         parent_resolver: &impl Resolver<'bump>,

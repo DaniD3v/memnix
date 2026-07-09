@@ -5,8 +5,7 @@ use getset::{CopyGetters, Getters, MutGetters};
 use crate::{
     ArenaId,
     arena::{DebugState, DebugWith},
-    coloring::expr::ColoredExprArena,
-    generic_lang::WithExprType,
+    coloring::{ColoredExpr, expr::ColoredExprArena},
     mir::RootExpr,
 };
 
@@ -23,12 +22,9 @@ pub struct ColorableRootExpr<'id> {
 impl<'id> ColorableRootExpr<'id> {
     pub fn from_mir_root(mir_root: RootExpr<'id>) -> Self {
         let (arena, root_node) = mir_root.into_parts();
-        let (hash_arena, root_node) = arena.flatten(root_node, |expr, map| expr.with_expr(&map));
+        let arena = arena.map(|expr| ColoredExpr { expr, color: None });
 
-        Self {
-            arena: hash_arena,
-            root_node,
-        }
+        Self { arena, root_node }
     }
 }
 

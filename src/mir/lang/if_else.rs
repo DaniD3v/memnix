@@ -1,11 +1,14 @@
 use rnix::ast::IfElse;
 
 use crate::mir::{
-    Intrinsic, LazyExprArena, MirLambdaCall, Resolve, Resolver, error::MirResolveError,
+    Intrinsic,
+    error::MirResolveError,
+    ident_resolver::{Resolve, Resolver},
+    lang::{LazyExprArena, LazyMirLambdaCall},
 };
 
 impl Resolve for IfElse {
-    type Target<'a> = MirLambdaCall<'a>;
+    type Target<'a> = LazyMirLambdaCall<'a>;
 
     /// An if/else expression doesn't require a special mir type at all.,
     /// Its functionality can simply be represented by a builtin functioncall,
@@ -17,13 +20,13 @@ impl Resolve for IfElse {
         self,
         resolver: &impl Resolver<'bump>,
         bump: &mut LazyExprArena<'bump>,
-    ) -> Result<MirLambdaCall<'bump>, MirResolveError> {
+    ) -> Result<LazyMirLambdaCall<'bump>, MirResolveError> {
         let condition = self.condition().unwrap().resolve(resolver, bump)?;
 
         let then_expr = self.body().unwrap().resolve(resolver, bump)?;
         let else_expr = self.else_body().unwrap().resolve(resolver, bump)?;
 
-        Ok(MirLambdaCall::new_curried(
+        Ok(LazyMirLambdaCall::new_curried(
             Intrinsic::IfElse.get_lambda(resolver),
             &[condition, then_expr, else_expr],
             bump,

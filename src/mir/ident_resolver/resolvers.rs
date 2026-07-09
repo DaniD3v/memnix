@@ -1,9 +1,10 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    ArenaId,
+    arena::LazyArenaId,
     mir::{
-        Ident, LazyExprArena, WrappedIntrinsics, error::MirResolveError, ident_resolver::Resolver,
+        Ident, WrappedIntrinsics, error::MirResolveError, ident_resolver::Resolver,
+        lang::LazyExprArena,
     },
 };
 
@@ -19,7 +20,7 @@ impl<'b> Resolver<'b> for RootResolver<'b> {
         &self,
         ident: &Ident,
         _: &LazyExprArena,
-    ) -> Result<ArenaId<'b>, MirResolveError> {
+    ) -> Result<LazyArenaId<'b>, MirResolveError> {
         Err(MirResolveError::IdentUnresolvable(ident.clone()))
     }
 
@@ -32,7 +33,7 @@ impl<'b> Resolver<'b> for RootResolver<'b> {
 }
 
 pub struct LazyMapResolver<'a, 'bump> {
-    pub bindings: &'a BTreeMap<String, ArenaId<'bump>>,
+    pub bindings: &'a BTreeMap<String, LazyArenaId<'bump>>,
     // Note: dyn is required as infinite resolver chains have to be possible
     pub parent: &'a dyn Resolver<'bump>,
 }
@@ -41,7 +42,7 @@ impl<'a, 'b> Resolver<'b> for LazyMapResolver<'a, 'b> {
         &self,
         ident: &Ident,
         arena: &LazyExprArena<'b>,
-    ) -> Result<ArenaId<'b>, MirResolveError> {
+    ) -> Result<LazyArenaId<'b>, MirResolveError> {
         match self.bindings.get(ident.as_ref()) {
             Some(&found) => Ok(found),
             None => self.parent.resolve_ident(ident, arena),
@@ -58,7 +59,7 @@ impl<'a, 'b> Resolver<'b> for LazyMapResolver<'a, 'b> {
 
 pub struct LambdaParamResolver<'a, 'bump> {
     pub ident: Ident,
-    pub expr: ArenaId<'bump>,
+    pub expr: LazyArenaId<'bump>,
     // Note: dyn is required as infinite resolver chains have to be possible
     pub parent: &'a dyn Resolver<'bump>,
 }
@@ -67,7 +68,7 @@ impl<'a, 'b> Resolver<'b> for LambdaParamResolver<'a, 'b> {
         &self,
         ident: &Ident,
         bump: &LazyExprArena<'b>,
-    ) -> Result<ArenaId<'b>, MirResolveError> {
+    ) -> Result<LazyArenaId<'b>, MirResolveError> {
         if self.ident == *ident {
             Ok(self.expr)
         } else {

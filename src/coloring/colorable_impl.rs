@@ -45,6 +45,7 @@ impl<'id> Colorable<'id> for &MirLambda<'id> {
     fn depend_on(self, hasher: &mut Hasher, arena: &Arena<'id, ColoredExpr<'_>>) {
         hasher.update(b"lambda");
 
+        self.param().clone().depend_on(hasher, arena);
         self.children().for_each(|(idx, label)| {
             idx.depend_on(hasher, arena);
             hasher.update(label.as_bytes());

@@ -1,28 +1,26 @@
 use rnix::ast;
 
 use crate::{
-    ArenaId,
+    arena::LazyArenaId,
     generic_lang::GenericLambda,
     mir::{
-        Ident, Intrinsic, LambdaParamResolver, LazyExprArena, MirExpr, Param, Resolve, Resolver,
+        Ident, Intrinsic, Param,
         error::MirResolveError,
+        ident_resolver::{LambdaParamResolver, Resolve, Resolver},
+        lang::{LazyExprArena, LazyMirExpr},
     },
 };
 
-pub type MirLambda<'bump> = GenericLambda<ArenaId<'bump>>;
+pub type LazyMirLambda<'bump> = GenericLambda<LazyArenaId<'bump>>;
 
-impl<'b> MirLambda<'b> {
+impl<'b> LazyMirLambda<'b> {
     /// Creates a Lambda wrapping an Intrinsic with the parameter names in `params`.
     pub fn with_params(
         intrinsic: Intrinsic,
         params: &[&str],
         bump: &mut LazyExprArena<'b>,
-    ) -> ArenaId<'b> {
+    ) -> LazyArenaId<'b> {
         Self::at_depth(intrinsic, params, 0, bump)
-    }
-
-    pub fn children(&self) -> impl Iterator<Item = (ArenaId<'b>, &str)> {
-        [(*self.body(), "body")].into_iter()
     }
 
     fn at_depth(
@@ -30,13 +28,13 @@ impl<'b> MirLambda<'b> {
         params: &[&str],
         depth: usize,
         bump: &mut LazyExprArena<'b>,
-    ) -> ArenaId<'b> {
+    ) -> LazyArenaId<'b> {
         assert!(!params.is_empty());
 
-        let expr = MirExpr::Lambda(Self::new(
+        let expr = LazyMirExpr::Lambda(Self::new(
             Param::at_depth(depth),
             if params.len() == 1 {
-                bump.alloc(MirExpr::Intrinsic(intrinsic))
+                bump.alloc(LazyMirExpr::Intrinsic(intrinsic))
             } else {
                 Self::at_depth(intrinsic, &params[1..], depth + 1, bump)
             },
@@ -47,7 +45,7 @@ impl<'b> MirLambda<'b> {
 }
 
 impl Resolve for ast::Lambda {
-    type Target<'bump> = MirLambda<'bump>;
+    type Target<'bump> = LazyMirLambda<'bump>;
 
     fn resolve<'b>(
         self,
@@ -62,17 +60,11 @@ impl Resolve for ast::Lambda {
 
         let body_resolver = LambdaParamResolver {
             ident: param_name.clone(),
-            expr: bump.alloc(MirExpr::Param(Param::new(resolver))),
+            expr: bump.alloc(LazyMirExpr::Param(Param::new(resolver))),
             parent: resolver,
         };
         let body = self.body().unwrap().resolve(&body_resolver, bump)?;
 
-        Ok(MirLambda::new(Param::new(&resolver), body))
-    }
-}
-
-impl<'b> PartialEq for MirLambda<'b> {
-    fn eq(&self, other: &Self) -> bool {
-        self.param() == other.param() && self.body() == other.body()
+        Ok(LazyMirLambda::new(Param::new(&resolver), body))
     }
 }

@@ -1,30 +1,7 @@
 mod lambda;
 mod lambda_call;
+mod with_expr_type;
 
 pub use lambda::GenericLambda;
 pub use lambda_call::GenericLambdaCall;
-
-use crate::ArenaId;
-
-/// Swaps the Expression of a generic lang item to the new Expression type `E`
-///
-/// `'p`: lifetime of the previous expr
-/// `'n`: lifetime of the next expr
-pub trait WithExprType<'p, 'n, E> {
-    type State<'s>: Clone
-    where
-        'p: 's;
-
-    fn with_expr<'s>(&self, state: Self::State<'s>) -> E;
-}
-
-impl<'p, 'n: 'p> WithExprType<'p, 'n, ArenaId<'n>> for ArenaId<'p> {
-    type State<'s>
-        = &'s dyn Fn(ArenaId<'p>) -> ArenaId<'n>
-    where
-        'p: 's;
-
-    fn with_expr<'s>(&self, state: Self::State<'s>) -> ArenaId<'n> {
-        state(*self)
-    }
-}
+pub use with_expr_type::WithExprType;

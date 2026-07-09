@@ -1,17 +1,20 @@
 use rnix::ast::BinOp;
 
 use crate::mir::{
-    Intrinsic, LazyExprArena, MirLambdaCall, Resolve, Resolver, error::MirResolveError,
+    Intrinsic,
+    error::MirResolveError,
+    ident_resolver::{Resolve, Resolver},
+    lang::{LazyExprArena, LazyMirLambdaCall},
 };
 
 impl Resolve for BinOp {
-    type Target<'a> = MirLambdaCall<'a>;
+    type Target<'a> = LazyMirLambdaCall<'a>;
 
     fn resolve<'b>(
         self,
         resolver: &impl Resolver<'b>,
         bump: &mut LazyExprArena<'b>,
-    ) -> Result<MirLambdaCall<'b>, MirResolveError> {
+    ) -> Result<LazyMirLambdaCall<'b>, MirResolveError> {
         let operator_kind = self.operator().unwrap();
 
         let lhs = self.lhs().unwrap().resolve(resolver, bump)?;
@@ -25,6 +28,6 @@ impl Resolve for BinOp {
             _ => todo!("Translate {:?} BinOp to Mir", operator_kind),
         };
 
-        Ok(MirLambdaCall::new_curried(lambda, &[lhs, rhs], bump))
+        Ok(LazyMirLambdaCall::new_curried(lambda, &[lhs, rhs], bump))
     }
 }

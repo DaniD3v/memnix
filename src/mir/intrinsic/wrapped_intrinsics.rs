@@ -1,11 +1,11 @@
 use strum::{EnumCount, IntoEnumIterator};
 
 use crate::{
-    ArenaId,
-    mir::{Intrinsic, LazyExprArena},
+    arena::LazyArenaId,
+    mir::{Intrinsic, lang::LazyExprArena},
 };
 
-pub struct WrappedIntrinsics<'b>([ArenaId<'b>; Intrinsic::COUNT]);
+pub struct WrappedIntrinsics<'b>([LazyArenaId<'b>; Intrinsic::COUNT]);
 
 impl<'b> WrappedIntrinsics<'b> {
     pub fn new(bump: &mut LazyExprArena<'b>) -> Self {
@@ -18,7 +18,7 @@ impl<'b> WrappedIntrinsics<'b> {
         }))
     }
 
-    pub(super) fn get(&self, intrinsic: Intrinsic) -> ArenaId<'b> {
+    pub(super) fn get(&self, intrinsic: Intrinsic) -> LazyArenaId<'b> {
         self.0[intrinsic as usize]
     }
 }

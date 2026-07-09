@@ -1,8 +1,12 @@
 use strum::{EnumCount, EnumIter};
 
 use crate::{
-    ArenaId,
-    mir::{LazyExprArena, MirLambda, ident_resolver::Resolver},
+    arena::LazyArenaId,
+    mir::{
+        expr::GenericMirExpr,
+        ident_resolver::Resolver,
+        lang::{LazyExprArena, LazyMirLambda},
+    },
 };
 
 #[derive(EnumIter, EnumCount, Copy, Clone, PartialEq, Debug)]
@@ -12,16 +16,28 @@ pub enum Intrinsic {
     LessOrEq,
     Add,
     Subtract,
+
+    /// An intrinsic that always errors.
+    ///
+    /// This is used to construct expressions as a
+    /// placeholder for nodes that are nothing.
+    /// e.g. let x=y; y=x; in x
+    RefCycleError,
 }
 
 impl Intrinsic {
-    pub fn get_lambda<'b>(self, resolver: impl Resolver<'b>) -> ArenaId<'b> {
+    pub fn get_lambda<'b>(self, resolver: impl Resolver<'b>) -> LazyArenaId<'b> {
         resolver.get_builtins().get(self)
     }
 
-    pub(super) fn new_wrapped<'b>(self, bump: &mut LazyExprArena<'b>) -> ArenaId<'b> {
+    pub(super) fn new_wrapped<'b>(self, bump: &mut LazyExprArena<'b>) -> LazyArenaId<'b> {
         let params = self.get_params();
-        MirLambda::with_params(self, params, bump)
+
+        if params.is_empty() {
+            bump.alloc(GenericMirExpr::Intrinsic(self))
+        } else {
+            LazyMirLambda::with_params(self, params, bump)
+        }
     }
 
     /// parameter names of the function called
@@ -30,6 +46,8 @@ impl Intrinsic {
         match self {
             Self::IfElse => &["condition", "then_expr", "else_expr"],
             Self::LessOrEq | Self::Add | Self::Subtract => &["l", "r"],
+
+            Self::RefCycleError => &[],
         }
     }
 }

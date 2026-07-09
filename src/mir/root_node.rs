@@ -5,25 +5,25 @@ use rnix::Root;
 
 use crate::{
     ArenaId,
-    arena::DebugWith,
+    arena::{DebugState, DebugWith, LazyArena},
+    generic_lang::WithExprType,
     mir::{
-        LazyDebugState, LazyExprArena, MirResolveError,
+        Intrinsic, MirExpr, MirResolveError,
+        expr::ExprArena,
         ident_resolver::{Resolve, RootResolver},
     },
 };
 
-// TODO: already swap out the LazyExprArena here instead of in the conversion to the sem hash arena
-
 #[derive(Getters)]
 #[getset(get = "pub")]
 pub struct RootExpr<'id> {
-    arena: LazyExprArena<'id>,
+    arena: ExprArena<'id>,
     root_node: ArenaId<'id>,
 }
 
 impl<'id> RootExpr<'id> {
-    pub fn new(root: Root) -> Result<RootExpr<'id>, MirResolveError> {
-        let mut arena = LazyExprArena::new();
+    pub fn new<'a>(root: Root) -> Result<RootExpr<'a>, MirResolveError> {
+        let mut arena = LazyArena::new();
 
         let root_resolver = RootResolver::new(&mut arena);
         let root_node = root
@@ -31,7 +31,13 @@ impl<'id> RootExpr<'id> {
             .expect("parsing errors")
             .resolve(&root_resolver, &mut arena)?;
 
-        Ok(Self { arena, root_node })
+        let (arena, root_node) = arena.flatten(
+            root_node,
+            MirExpr::Intrinsic(Intrinsic::RefCycleError),
+            |expr, map| expr.with_expr(&map),
+        );
+
+        Ok(RootExpr { arena, root_node })
     }
 
     // pub fn eval(&self) -> RuntimeValue {
@@ -40,14 +46,14 @@ impl<'id> RootExpr<'id> {
     //         .eval(&EvalState::new(&self.arena))
     // }
 
-    pub fn into_parts(self) -> (LazyExprArena<'id>, ArenaId<'id>) {
+    pub fn into_parts(self) -> (ExprArena<'id>, ArenaId<'id>) {
         (self.arena, self.root_node)
     }
 }
 
 impl<'id> Debug for RootExpr<'id> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let debug_state = LazyDebugState::new(&self.arena);
+        let debug_state = DebugState::new(&self.arena);
         self.root_node.fmt_with(&debug_state, f)
     }
 }

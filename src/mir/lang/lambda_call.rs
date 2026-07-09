@@ -1,64 +1,58 @@
 use rnix::ast;
 
 use crate::{
-    ArenaId,
+    arena::LazyArenaId,
     generic_lang::GenericLambdaCall,
-    mir::{LazyExprArena, MirExpr, Resolve, Resolver, error::MirResolveError},
+    mir::{
+        error::MirResolveError,
+        ident_resolver::{Resolve, Resolver},
+        lang::{LazyExprArena, LazyMirExpr},
+    },
 };
 
-pub type MirLambdaCall<'bump> = GenericLambdaCall<ArenaId<'bump>>;
+pub type LazyMirLambdaCall<'bump> = GenericLambdaCall<LazyArenaId<'bump>>;
 
-impl<'b> MirLambdaCall<'b> {
+impl<'b> LazyMirLambdaCall<'b> {
     /// In nix lambas only take one input parameter.
     /// In order to take multiple you simply return a second function
     /// that takes another parameter from the first function.
     pub fn new_curried(
-        lambda: ArenaId<'b>,
-        args: &[ArenaId<'b>],
+        lambda: LazyArenaId<'b>,
+        args: &[LazyArenaId<'b>],
         arena: &mut LazyExprArena<'b>,
     ) -> Self {
         assert!(!args.is_empty());
 
         if args.len() == 1 {
-            MirLambdaCall::new(lambda, args[0])
+            LazyMirLambdaCall::new(lambda, args[0])
         } else {
             let (&argument, curried_args) = args.split_last().expect("args cannot be empty");
 
             // The lambda that is to the left of this lambda.
             // e.g. `builtins.add 1` in `(builtins.add 1) 2`
-            let inner =
-                MirExpr::LambdaCall(MirLambdaCall::new_curried(lambda, curried_args, arena));
+            let inner = LazyMirExpr::LambdaCall(LazyMirLambdaCall::new_curried(
+                lambda,
+                curried_args,
+                arena,
+            ));
             let inner = arena.alloc(inner);
 
-            MirLambdaCall::new(inner, argument)
+            LazyMirLambdaCall::new(inner, argument)
         }
-    }
-
-    pub fn children(&self) -> impl Iterator<Item = (ArenaId<'b>, &str)> {
-        [(*self.lambda(), "lambda"), (*self.argument(), "argument")].into_iter()
     }
 }
 
 impl Resolve for ast::Apply {
-    type Target<'bump> = MirLambdaCall<'bump>;
+    type Target<'bump> = LazyMirLambdaCall<'bump>;
 
     fn resolve<'bump>(
         self,
         resolver: &impl Resolver<'bump>,
         bump: &mut LazyExprArena<'bump>,
-    ) -> Result<MirLambdaCall<'bump>, MirResolveError> {
+    ) -> Result<LazyMirLambdaCall<'bump>, MirResolveError> {
         let lambda = self.lambda().unwrap().resolve(resolver, bump)?;
         let argument = self.argument().unwrap().resolve(resolver, bump)?;
 
-        Ok(MirLambdaCall::new(lambda, argument))
-    }
-}
-
-// TODO: test this
-// 'b is invariant so we can only compare to
-// elements backed by the same bump allocator
-impl<'b> PartialEq for MirLambdaCall<'b> {
-    fn eq(&self, other: &Self) -> bool {
-        self.children().eq(other.children())
+        Ok(LazyMirLambdaCall::new(lambda, argument))
     }
 }

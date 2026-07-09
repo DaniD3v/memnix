@@ -17,6 +17,16 @@ impl<E> GenericLambdaCall<E> {
     }
 }
 
+impl<E: Clone> GenericLambdaCall<E> {
+    pub fn children(&self) -> impl Iterator<Item = (E, &str)> {
+        [
+            (self.lambda.clone(), "lambda"),
+            (self.argument.clone(), "argument"),
+        ]
+        .into_iter()
+    }
+}
+
 impl<'p, 'n, From: WithExprType<'p, 'n, To>, To> WithExprType<'p, 'n, GenericLambdaCall<To>>
     for GenericLambdaCall<From>
 {
@@ -25,7 +35,7 @@ impl<'p, 'n, From: WithExprType<'p, 'n, To>, To> WithExprType<'p, 'n, GenericLam
     where
         'p: 's;
 
-    fn with_expr<'s>(&self, state: Self::State<'s>) -> GenericLambdaCall<To> {
+    fn with_expr<'s>(self, state: Self::State<'s>) -> GenericLambdaCall<To> {
         GenericLambdaCall {
             lambda: self.lambda.with_expr(state.clone()),
             argument: self.argument.with_expr(state),

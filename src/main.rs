@@ -13,6 +13,7 @@ pub mod coloring;
 pub mod generic_lang;
 pub mod mir;
 
+// TODO: remove this re-export
 pub use arena::{Arena, ArenaId};
 
 #[derive(Parser, Debug)]

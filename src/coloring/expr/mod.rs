@@ -33,25 +33,25 @@ impl<'p, 'n: 'p> WithExprType<'p, 'n, ColoredExpr<'n>> for MirExpr<'p> {
     where
         'p: 's;
 
-    fn with_expr<'s>(&self, state: Self::State<'s>) -> ColoredExpr<'n> {
+    fn with_expr<'s>(self, state: Self::State<'s>) -> ColoredExpr<'n> {
         ColoredExpr {
             expr: match self {
                 Self::LambdaCall(inner) => MirExpr::LambdaCall(inner.with_expr(state)),
                 Self::Lambda(inner) => MirExpr::Lambda(inner.with_expr(state)),
 
-                Self::Literal(inner) => MirExpr::Literal(inner.clone()),
-                Self::Param(inner) => MirExpr::Param(inner.clone()),
-                Self::Intrinsic(inner) => MirExpr::Intrinsic(*inner),
+                Self::Literal(inner) => MirExpr::Literal(inner),
+                Self::Param(inner) => MirExpr::Param(inner),
+                Self::Intrinsic(inner) => MirExpr::Intrinsic(inner),
             },
             color: None,
         }
     }
 }
 
-impl<'id> DebugWith<DebugState<'id, '_, ColoredExprArena<'id>>> for ColoredExpr<'id> {
+impl<'id> DebugWith<DebugState<'id, '_, ColoredExpr<'id>>> for ColoredExpr<'id> {
     fn fmt_with(
         &self,
-        with: &DebugState<'id, '_, ColoredExprArena<'id>>,
+        with: &DebugState<'id, '_, ColoredExpr<'id>>,
         f: &mut std::fmt::Formatter<'_>,
     ) -> std::fmt::Result {
         f.debug_struct("ColoredExpr")
@@ -61,10 +61,10 @@ impl<'id> DebugWith<DebugState<'id, '_, ColoredExprArena<'id>>> for ColoredExpr<
     }
 }
 
-impl<'id> DebugWith<DebugState<'id, '_, ColoredExprArena<'id>>> for MirExpr<'id> {
+impl<'id> DebugWith<DebugState<'id, '_, ColoredExpr<'id>>> for MirExpr<'id> {
     fn fmt_with(
         &self,
-        with: &DebugState<'id, '_, ColoredExprArena<'id>>,
+        with: &DebugState<'id, '_, ColoredExpr<'id>>,
         f: &mut Formatter<'_>,
     ) -> std::fmt::Result {
         match self {

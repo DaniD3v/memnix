@@ -3,35 +3,35 @@
 //! It allows storing `Deferred` values or `References`
 //! to other expressions directly in the arena.
 
-use std::ops::{Deref, DerefMut, Index};
+mod debug;
 
-use crate::{
-    Arena, ArenaId,
-    arena::{DebugState, debug::DebugArena},
+pub use debug::LazyDebugState;
+
+use std::{
+    collections::BTreeSet,
+    ops::{Deref, DerefMut, Index},
 };
 
-pub type LazyDebugState<'id, 'a, T> = DebugState<'id, 'a, LazyArena<'id, T>>;
+use crate::{Arena, ArenaId};
 
+/// An extended write-only Arena that allows `Deferred` or `Reference` values.
+///
+/// It simplifies building lazy / cyclic structures and
+/// can be normalized to an `Arena` with the `flatten` method.
+#[derive(Default)]
 pub struct LazyArena<'id, T>(Arena<'id, MaybeOrRef<'id, T>>);
+
+// new-type because `LazyArenaId` must not implement `PartialEq`
+#[derive(Copy, Clone)]
+pub struct LazyArenaId<'id>(ArenaId<'id>);
 
 pub enum MaybeOrRef<'id, S> {
     Some(S),
-
-    /// Invariant:
-    ///
-    /// The ref is not allowed to point to another ref variant.
-    Ref(ArenaId<'id>),
+    Ref(LazyArenaId<'id>),
 
     /// A deferred item should be filled as quickly as possible.
     /// Certain arena operations may panic when performed on a deferred item.
     Deferred,
-}
-
-// TODO: check for correctness errors because of partialeq based on idx
-impl<'id, T> Default for LazyArena<'id, T> {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 impl<'id, T> LazyArena<'id, T> {
@@ -39,32 +39,36 @@ impl<'id, T> LazyArena<'id, T> {
         Self(Arena::new())
     }
 
-    pub fn alloc(&mut self, t: T) -> ArenaId<'id> {
-        self.deref_mut().alloc(MaybeOrRef::Some(t))
+    pub fn alloc(&mut self, t: T) -> LazyArenaId<'id> {
+        LazyArenaId(self.deref_mut().alloc(MaybeOrRef::Some(t)))
     }
 
-    pub fn alloc_deferred(&mut self) -> ArenaId<'id> {
-        self.deref_mut().alloc(MaybeOrRef::Deferred)
+    pub fn alloc_deferred(&mut self) -> LazyArenaId<'id> {
+        LazyArenaId(self.deref_mut().alloc(MaybeOrRef::Deferred))
     }
 
-    pub fn fill_deferred(&mut self, idx: ArenaId<'id>, reference: ArenaId<'id>) {
-        let reference = self.flatten_ref(reference);
-
-        let ret = std::mem::replace(&mut self.deref_mut()[idx], MaybeOrRef::Ref(reference));
-        assert!(matches!(ret, MaybeOrRef::Deferred));
+    pub fn fill_deferred(&mut self, idx: LazyArenaId<'id>, reference: LazyArenaId<'id>) {
+        let prev = std::mem::replace(&mut self.0[idx.0], MaybeOrRef::Ref(reference));
+        assert!(matches!(prev, MaybeOrRef::Deferred));
     }
 
     /// Flattens a lazy arena into a normal arena, removing `Ref` indirections.
     ///
-    /// Panics if there are any `Deferred` values.
+    /// Panics if there are any `Deferred` values left.
+    ///
+    /// `root`: The previous root node.
+    /// The returned `ArenaId` will be the `O` equivalent of the previous root node.
+    ///
+    /// `cycle_placeholder`: A value used in-place of `Ref` cycles.
+    /// It is only allocated if a cycle actually exists.
     ///
     /// `transform_idx`: Should transform all of T's internal `LazyArenaId` references
     /// to `ArenaId` references using the provided mapping closure.
     pub fn flatten<O>(
-        self,
-        root: ArenaId<'id>,
-        // TODO: fix this lifetime. the lifetime of the returned object should differ
-        transform_idx: impl Fn(T, &dyn Fn(ArenaId<'id>) -> ArenaId<'id>) -> O,
+        mut self,
+        root_node: LazyArenaId<'id>,
+        cycle_placeholder: O,
+        transform_idx: impl Fn(T, &dyn Fn(LazyArenaId<'id>) -> ArenaId<'id>) -> O,
     ) -> (Arena<'id, O>, ArenaId<'id>) {
         let mut new_arena = Arena::new(); // TODO: with_capacity
         let mut idx_mapping = vec![None; self.size()];
@@ -83,25 +87,34 @@ impl<'id, T> LazyArena<'id, T> {
             })
             .for_each(|(idx, _)| idx_mapping[idx] = Some(new_arena.alloc(None)));
 
+        let mut cycle_placeholder = Some(cycle_placeholder);
+        let mut cycle_placeholder_id = None;
+
         // Update the `idx_mapping` for `Ref` entries
         //
         // We need to do this so that internal references inside T can get resolved properly
         // This needs to be a separate step so that resolve doesn't need to capture `&self`
-        self.0
-            .iter()
-            .enumerate()
-            .filter_map(|(idx, val)| match val {
-                MaybeOrRef::Ref(val) => Some((idx, val)),
-                _ => None,
-            })
-            .for_each(|(idx, val)| {
-                idx_mapping[idx] = Some(
-                    idx_mapping[val.idx()]
-                        .expect("idx_mapping[reference] should already be `Some`"),
-                )
-            });
+        for idx in self.0.iter_indices() {
+            let MaybeOrRef::Ref(ref_idx) = self.0[idx] else {
+                continue;
+            };
 
-        let resolve = |id: ArenaId<'id>| idx_mapping[id.idx()].unwrap();
+            idx_mapping[idx.idx()] = Some(match self.flatten_ref(ref_idx, &mut BTreeSet::new()) {
+                Some(target) => idx_mapping[target.0.idx()]
+                    .expect("flattened ref target should be mapped in pass 1"),
+
+                // All cycles share a single lazily allocated placeholder node.
+                None => *cycle_placeholder_id.get_or_insert_with(|| {
+                    new_arena.alloc(Some(
+                        cycle_placeholder
+                            .take()
+                            .expect("placeholder is only consumed once"),
+                    ))
+                }),
+            });
+        }
+
+        let resolve = |id: LazyArenaId<'id>| idx_mapping[id.0.idx()].unwrap();
         self.0
             .into_iter()
             .enumerate()
@@ -113,19 +126,31 @@ impl<'id, T> LazyArena<'id, T> {
                 new_arena[idx_mapping[idx].unwrap()] = Some(transform_idx(val, &resolve))
             });
 
-        let new_root = idx_mapping[root.idx()].unwrap();
+        let new_root = idx_mapping[root_node.0.idx()].unwrap();
         (new_arena.map(|val| val.unwrap()), new_root)
     }
 
-    fn flatten_ref(&self, idx: ArenaId<'id>) -> ArenaId<'id> {
-        if let MaybeOrRef::Ref(target) = self.0[idx] {
-            debug_assert!(
-                !matches!(self.0[target], MaybeOrRef::Ref(_)),
-                "invariant violated: ref points to another ref"
-            );
-            target
-        } else {
-            idx
+    /// Flattens a reference so that it points to a non-ref value.
+    ///
+    /// Returns `None` for `Ref` cycles.
+    fn flatten_ref(
+        &mut self,
+        idx: LazyArenaId<'id>,
+        visited: &mut BTreeSet<usize>,
+    ) -> Option<LazyArenaId<'id>> {
+        // ref cycles must be handled gracefully
+        if !visited.insert(idx.0.idx()) {
+            return None;
+        }
+
+        match &self.0[idx.0] {
+            MaybeOrRef::Ref(new_idx) => {
+                let result = self.flatten_ref(*new_idx, visited)?;
+                self.0[idx.0] = MaybeOrRef::Ref(result);
+
+                Some(result)
+            }
+            _ => Some(idx),
         }
     }
 }
@@ -136,7 +161,7 @@ impl<'id, T> Index<ArenaId<'id>> for LazyArena<'id, T> {
     fn index(&self, index: ArenaId<'id>) -> &Self::Output {
         match &self.0[index] {
             MaybeOrRef::Some(val) => val,
-            MaybeOrRef::Ref(idx) => &self[*idx],
+            MaybeOrRef::Ref(idx) => &self[idx.0],
             MaybeOrRef::Deferred => {
                 unreachable!("deferred expressions should already be resolved on first access")
             }
@@ -155,24 +180,5 @@ impl<'id, T> Deref for LazyArena<'id, T> {
 impl<'id, T> DerefMut for LazyArena<'id, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
-    }
-}
-
-impl<'id, T> DebugArena<'id> for LazyArena<'id, T> {
-    type Item = T;
-
-    fn canonical_idx(&self, id: ArenaId<'id>) -> usize {
-        match &self.0[id] {
-            MaybeOrRef::Ref(idx) => idx.idx(),
-            _ => id.idx(),
-        }
-    }
-
-    fn get(&self, id: ArenaId<'id>) -> &T {
-        &self[id]
-    }
-
-    fn size(&self) -> usize {
-        self.0.size()
     }
 }

@@ -12,7 +12,7 @@ use std::{
 use getset::CopyGetters;
 
 pub use debug::{DebugState, DebugWith, DebugWithWrapper};
-pub use lazy_arena::{LazyArena, LazyDebugState};
+pub use lazy_arena::{LazyArena, LazyArenaId, LazyDebugState};
 
 use crate::arena::debug::DebugArena;
 
@@ -24,7 +24,7 @@ pub struct Arena<'id, T> {
 
 /// An `ArenaId` is an index into the `Arena` with the lifetime `id`.
 /// The id cannot be an invalid index.
-#[derive(CopyGetters, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(CopyGetters, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub struct ArenaId<'id> {
     #[getset(get_copy = "pub")]
     idx: usize,

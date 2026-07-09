@@ -5,7 +5,7 @@ use std::{
     marker::PhantomData,
 };
 
-use crate::ArenaId;
+use crate::{Arena, ArenaId};
 
 pub trait DebugWith<T>: Sized {
     fn fmt_with(&self, with: &T, f: &mut Formatter<'_>) -> std::fmt::Result;
@@ -20,18 +20,21 @@ pub trait DebugArena<'id> {
 
     // TODO doc
     // index that is the same for 2 equal elements
+    // TODO: this is actually broken cause cycles
     fn canonical_idx(&self, id: ArenaId<'id>) -> usize;
     fn get(&self, id: ArenaId<'id>) -> &Self::Item;
     fn size(&self) -> usize;
 }
 
-pub struct DebugState<'id, 'a, A: DebugArena<'id>> {
+pub struct GenericDebugState<'id, 'a, A: DebugArena<'id>> {
     arena: &'a A,
     already_debugged: RefCell<Vec<bool>>,
     _phantom: PhantomData<fn(&'id ()) -> &'id ()>,
 }
 
-impl<'id, 'a, A: DebugArena<'id>> DebugState<'id, 'a, A> {
+pub type DebugState<'id, 'a, T> = GenericDebugState<'id, 'a, Arena<'id, T>>;
+
+impl<'id, 'a, A: DebugArena<'id>> GenericDebugState<'id, 'a, A> {
     pub fn new(arena: &'a A) -> Self {
         Self {
             arena,
@@ -44,11 +47,11 @@ impl<'id, 'a, A: DebugArena<'id>> DebugState<'id, 'a, A> {
 // NOTE:
 // This often throws confusing errors because the trait bound is circular.
 // The bound `E: DebugWith<DebugState<'id, 'a, E>>` has to be implemented directly.
-impl<'id, 'a, A: DebugArena<'id>> DebugWith<DebugState<'id, 'a, A>> for ArenaId<'id>
+impl<'id, 'a, A: DebugArena<'id>> DebugWith<GenericDebugState<'id, 'a, A>> for ArenaId<'id>
 where
-    A::Item: DebugWith<DebugState<'id, 'a, A>>,
+    A::Item: DebugWith<GenericDebugState<'id, 'a, A>>,
 {
-    fn fmt_with(&self, with: &DebugState<'id, 'a, A>, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt_with(&self, with: &GenericDebugState<'id, 'a, A>, f: &mut Formatter<'_>) -> fmt::Result {
         let idx = with.arena.canonical_idx(*self);
 
         if with.already_debugged.borrow()[idx] {
