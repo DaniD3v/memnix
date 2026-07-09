@@ -39,7 +39,13 @@ impl<'id> ArenaBackedGraph<'id> {
 
 impl<'b> GraphBase for ArenaBackedGraph<'b> {
     type NodeId = ArenaId<'b>;
-    type EdgeId = (ArenaId<'b>, ArenaId<'b>);
+
+    // The `u32` slot disambiguates parallel edges.
+    // e.g. `LambdaCall(f, f)` produces two edges with the same source/target.
+    //
+    // The field name would suffice semantically, but its `&str`
+    // lifetime is tied to the graph borrow and can't appear in `EdgeId`.
+    type EdgeId = (ArenaId<'b>, ArenaId<'b>, u32);
 }
 
 impl<'id> Data for ArenaBackedGraph<'id> {
@@ -108,14 +114,14 @@ impl<'id, 'a> IntoEdgeReferences for &'a ArenaBackedGraph<'id> {
                 .arena()
                 .iter_indices()
                 .flat_map(move |source| {
-                    self.arena()[source]
-                        .expr()
-                        .children()
-                        .map(move |(target, field)| FieldEdgeRef {
+                    self.arena()[source].expr().children().enumerate().map(
+                        move |(slot, (target, field))| FieldEdgeRef {
                             source,
                             target,
+                            slot: slot as u32,
                             field,
-                        })
+                        },
+                    )
                 }),
         )
     }
@@ -155,11 +161,12 @@ pub struct FieldEdgeRef<'a, 'id> {
     pub source: ArenaId<'id>,
     pub target: ArenaId<'id>,
     pub field: &'a str,
+    pub slot: u32,
 }
 
 impl<'a, 'id> EdgeRef for FieldEdgeRef<'a, 'id> {
     type NodeId = ArenaId<'id>;
-    type EdgeId = (ArenaId<'id>, ArenaId<'id>);
+    type EdgeId = (ArenaId<'id>, ArenaId<'id>, u32);
     type Weight = ();
 
     fn source(&self) -> Self::NodeId {
@@ -172,6 +179,6 @@ impl<'a, 'id> EdgeRef for FieldEdgeRef<'a, 'id> {
         &()
     }
     fn id(&self) -> Self::EdgeId {
-        (self.source, self.target)
+        (self.source, self.target, self.slot)
     }
 }
