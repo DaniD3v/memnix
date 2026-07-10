@@ -40,12 +40,6 @@ impl<'id> RootExpr<'id> {
         Ok(RootExpr { arena, root_node })
     }
 
-    // pub fn eval(&self) -> RuntimeValue {
-    //     self.root_node
-    //         .get_unwrap(&self.arena)
-    //         .eval(&EvalState::new(&self.arena))
-    // }
-
     pub fn into_parts(self) -> (ExprArena<'id>, ArenaId<'id>) {
         (self.arena, self.root_node)
     }

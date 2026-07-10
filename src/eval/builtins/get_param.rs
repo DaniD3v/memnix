@@ -1,22 +1,22 @@
 use crate::eval::{error::EvalError, value::RuntimeValue};
 
-pub fn get_params<'b, T: GetParamsTrait<'b>>(
-    callstack: &[RuntimeValue<'b>],
+pub fn get_params<'b, 'a, T: GetParamsTrait<'b, 'a>>(
+    callstack: &[RuntimeValue<'b, 'a>],
 ) -> Result<T, EvalError> {
     GetParamsTrait::get_params(callstack)
 }
 
-pub trait FromRuntimeValue<'b>: Sized {
-    fn from(value: RuntimeValue<'b>) -> Result<Self, EvalError>;
+pub trait FromRuntimeValue<'b, 'a>: Sized {
+    fn from(value: RuntimeValue<'b, 'a>) -> Result<Self, EvalError>;
 }
 
-pub trait GetParamsTrait<'b>: Sized {
-    fn get_params(callstack: &[RuntimeValue<'b>]) -> Result<Self, EvalError>;
+pub trait GetParamsTrait<'b, 'a>: Sized {
+    fn get_params(callstack: &[RuntimeValue<'b, 'a>]) -> Result<Self, EvalError>;
 }
 
 // TODO use a macro for this
-impl<'b, T1: FromRuntimeValue<'b>> GetParamsTrait<'b> for (T1,) {
-    fn get_params(callstack: &[RuntimeValue<'b>]) -> Result<Self, EvalError> {
+impl<'b: 'a, 'a, T1: FromRuntimeValue<'b, 'a>> GetParamsTrait<'b, 'a> for (T1,) {
+    fn get_params(callstack: &[RuntimeValue<'b, 'a>]) -> Result<Self, EvalError> {
         let [t1] = callstack.as_array()
         .expect("the number of expected parameters differs between the intrinsic and the implementation")
         .clone();
@@ -25,8 +25,10 @@ impl<'b, T1: FromRuntimeValue<'b>> GetParamsTrait<'b> for (T1,) {
     }
 }
 
-impl<'b, T1: FromRuntimeValue<'b>, T2: FromRuntimeValue<'b>> GetParamsTrait<'b> for (T1, T2) {
-    fn get_params(callstack: &[RuntimeValue<'b>]) -> Result<Self, EvalError> {
+impl<'b: 'a, 'a, T1: FromRuntimeValue<'b, 'a>, T2: FromRuntimeValue<'b, 'a>> GetParamsTrait<'b, 'a>
+    for (T1, T2)
+{
+    fn get_params(callstack: &[RuntimeValue<'b, 'a>]) -> Result<Self, EvalError> {
         let [t1, t2] = callstack.as_array()
         .expect("the number of expected parameters differs between the intrinsic and the implementation")
         .clone();
@@ -35,10 +37,15 @@ impl<'b, T1: FromRuntimeValue<'b>, T2: FromRuntimeValue<'b>> GetParamsTrait<'b> 
     }
 }
 
-impl<'b, T1: FromRuntimeValue<'b>, T2: FromRuntimeValue<'b>, T3: FromRuntimeValue<'b>>
-    GetParamsTrait<'b> for (T1, T2, T3)
+impl<
+    'b,
+    'a,
+    T1: FromRuntimeValue<'b, 'a>,
+    T2: FromRuntimeValue<'b, 'a>,
+    T3: FromRuntimeValue<'b, 'a>,
+> GetParamsTrait<'b, 'a> for (T1, T2, T3)
 {
-    fn get_params(callstack: &[RuntimeValue<'b>]) -> Result<Self, EvalError> {
+    fn get_params(callstack: &[RuntimeValue<'b, 'a>]) -> Result<Self, EvalError> {
         let [t1, t2, t3] = callstack.as_array()
         .expect("the number of expected parameters differs between the intrinsic and the implementation")
         .clone();

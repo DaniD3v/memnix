@@ -22,8 +22,8 @@ impl RuntimeNumber {
     }
 }
 
-impl<'b> FromRuntimeValue<'b> for RuntimeNumber {
-    fn from(value: RuntimeValue<'b>) -> Result<Self, EvalError> {
+impl<'b> FromRuntimeValue<'b, '_> for RuntimeNumber {
+    fn from(value: RuntimeValue<'b, '_>) -> Result<Self, EvalError> {
         match value.eval_thunk() {
             RuntimeValue::Number(ret) => Ok(ret),
             _ => Err(EvalError::WrongType),

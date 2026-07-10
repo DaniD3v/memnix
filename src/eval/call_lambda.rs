@@ -1,24 +1,28 @@
 use crate::{
     eval::{
-        Eval,
+        Eval, EvalState,
         value::{RuntimeValue, Thunk},
     },
     mir::MirLambdaCall,
 };
 
-impl<'b> Eval<'b> for MirLambdaCall<'b> {
-    fn eval(&self, callstack: &[RuntimeValue<'b>]) -> RuntimeValue<'b> {
-        let evaluated = self.lambda().eval(callstack).eval_thunk();
+impl<'id> Eval<'id> for &MirLambdaCall<'id> {
+    fn eval<'a>(self, state: EvalState<'id, 'a>) -> RuntimeValue<'id, 'a> {
+        let evaluated = self.lambda().eval(state).eval_thunk();
         let RuntimeValue::Lambda(lambda) = evaluated else {
             panic!("self: {:?}; eval: {:?}", self, evaluated);
             // TODO other error for EvalError
             // return Err(EvalError::NotALambda);
         };
-        let arg = RuntimeValue::Thunk(Thunk::new(self.argument(), callstack.to_vec()));
+        let arg = RuntimeValue::Thunk(Thunk::new(*self.argument(), state));
 
         let mut callstack = lambda.captures().to_owned();
         callstack.push(arg);
 
-        lambda.body().eval(&callstack)
+        // TODO: leaks the callstack on every call — replace with proper frame ownership (Rc/arena)
+        lambda.body().eval(EvalState {
+            callstack: callstack.leak(),
+            arena: state.arena,
+        })
     }
 }

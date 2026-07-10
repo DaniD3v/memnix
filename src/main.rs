@@ -4,12 +4,13 @@ use clap::Parser;
 
 use crate::{
     coloring::{ArenaBackedGraph, AsDot, ColorableRootExpr, color_graph},
+    eval::eval_root_expr,
     mir::RootExpr,
 };
 
 pub mod arena;
-// mod eval; // TODO
 pub mod coloring;
+mod eval;
 pub mod generic_lang;
 pub mod mir;
 
@@ -41,7 +42,6 @@ fn main() {
     let _ = fs::write("out.dot", format!("{:?}", AsDot(&colored_graph)));
     println!("Hashed: {:#?}", colored_graph.root_node());
 
-    // TODO
-    // let eval = expr.eval().eval_thunk();
-    // println!("Eval: {:#?}", eval)
+    let eval = eval_root_expr(colored_graph.root_node());
+    println!("Eval: {:#?}", eval)
 }

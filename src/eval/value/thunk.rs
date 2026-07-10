@@ -1,24 +1,30 @@
+use std::fmt::{self, Debug};
+
 use crate::{
-    eval::{Eval, value::RuntimeValue},
-    mir::Expr,
+    ArenaId,
+    eval::{Eval, EvalState, value::RuntimeValue},
 };
 
-#[derive(Clone, Debug)]
-pub struct Thunk<'b> {
-    expr: &'b Expr<'b>,
-    callstack: Vec<RuntimeValue<'b>>,
+#[derive(Clone)]
+pub struct Thunk<'id, 'a> {
+    expr: ArenaId<'id>,
+    state: EvalState<'id, 'a>,
 }
 
-impl<'b> Thunk<'b> {
-    pub fn eval(&self) -> RuntimeValue<'b> {
-        match self.expr.eval(&self.callstack) {
+impl<'id, 'a> Thunk<'id, 'a> {
+    pub fn new(expr: ArenaId<'id>, state: EvalState<'id, 'a>) -> Self {
+        Self { expr, state }
+    }
+
+    pub fn eval(self) -> RuntimeValue<'id, 'a> {
+        match self.expr.eval(self.state) {
             RuntimeValue::Thunk(thunk) => thunk.eval(),
             any => any,
         }
     }
 }
 
-impl<'b> RuntimeValue<'b> {
+impl<'b> RuntimeValue<'b, '_> {
     pub fn eval_thunk(self) -> Self {
         match self {
             Self::Thunk(thunk) => thunk.eval(),
@@ -27,8 +33,11 @@ impl<'b> RuntimeValue<'b> {
     }
 }
 
-impl<'b> Thunk<'b> {
-    pub fn new(expr: &'b Expr<'b>, callstack: Vec<RuntimeValue<'b>>) -> Self {
-        Self { expr, callstack }
+impl<'id> Debug for Thunk<'id, '_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Thunk")
+            .field("expr", &self.expr)
+            .field("callstack", &self.state.callstack)
+            .finish()
     }
 }

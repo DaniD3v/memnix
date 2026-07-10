@@ -7,28 +7,28 @@ pub use thunk::Thunk;
 use getset::{CopyGetters, Getters};
 
 use crate::{
+    ArenaId,
     eval::{builtins::FromRuntimeValue, error::EvalError},
-    mir::Expr,
 };
 
 #[derive(Clone, Debug)]
-pub enum RuntimeValue<'b> {
-    Lambda(RuntimeLambda<'b>),
+pub enum RuntimeValue<'id, 'a> {
+    Lambda(RuntimeLambda<'id, 'a>),
     Number(RuntimeNumber),
-    Thunk(Thunk<'b>),
+    Thunk(Thunk<'id, 'a>),
     Bool(bool),
 
     Error(EvalError),
 }
 
-impl<'b> FromRuntimeValue<'b> for RuntimeValue<'b> {
-    fn from(value: RuntimeValue<'b>) -> Result<Self, EvalError> {
+impl<'b, 'a> FromRuntimeValue<'b, 'a> for RuntimeValue<'b, 'a> {
+    fn from(value: RuntimeValue<'b, 'a>) -> Result<Self, EvalError> {
         Ok(value)
     }
 }
 
-impl<'b> FromRuntimeValue<'b> for bool {
-    fn from(value: RuntimeValue<'b>) -> Result<Self, EvalError> {
+impl<'b> FromRuntimeValue<'b, '_> for bool {
+    fn from(value: RuntimeValue<'b, '_>) -> Result<Self, EvalError> {
         match value.eval_thunk() {
             RuntimeValue::Bool(ret) => Ok(ret),
             _ => Err(EvalError::WrongType),
@@ -37,15 +37,15 @@ impl<'b> FromRuntimeValue<'b> for bool {
 }
 
 #[derive(Clone, Debug, Getters, CopyGetters)]
-pub struct RuntimeLambda<'b> {
+pub struct RuntimeLambda<'id, 'a> {
     #[getset(get_copy = "pub")]
-    body: &'b Expr<'b>,
+    body: ArenaId<'id>,
     #[getset(get = "pub")]
-    captures: Vec<RuntimeValue<'b>>,
+    captures: Vec<RuntimeValue<'id, 'a>>,
 }
 
-impl<'b> RuntimeLambda<'b> {
-    pub fn new(body: &'b Expr<'b>, captures: Vec<RuntimeValue<'b>>) -> Self {
+impl<'id, 'a> RuntimeLambda<'id, 'a> {
+    pub fn new(body: ArenaId<'id>, captures: Vec<RuntimeValue<'id, 'a>>) -> Self {
         Self { body, captures }
     }
 }

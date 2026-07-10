@@ -6,50 +6,68 @@ mod error;
 mod value;
 
 use crate::{
+    Arena, ArenaId,
+    coloring::{ColorableRootExpr, ColoredExpr},
     eval::value::{RuntimeLambda, RuntimeNumber, RuntimeValue},
-    mir::{Expr, MirLambda, Literal},
+    mir::{Literal, MirExpr, MirLambda},
 };
 
-pub trait Eval<'b> {
-    fn eval(&self, callstack: &[RuntimeValue<'b>]) -> RuntimeValue<'b>;
+pub trait Eval<'id> {
+    fn eval<'a>(self, state: EvalState<'id, 'a>) -> RuntimeValue<'id, 'a>;
 }
 
-impl<'b> Eval<'b> for Literal {
-    fn eval(&self, _: &[RuntimeValue]) -> RuntimeValue<'b> {
+#[derive(Copy, Clone)]
+pub struct EvalState<'id, 'a> {
+    callstack: &'a [RuntimeValue<'id, 'a>],
+    arena: &'a Arena<'id, ColoredExpr<'id>>,
+}
+
+pub fn eval_root_expr<'id, 'a>(root: &'a ColorableRootExpr<'id>) -> RuntimeValue<'id, 'a> {
+    let state = EvalState {
+        callstack: &[],
+        arena: root.arena(),
+    };
+
+    root.root_node().eval(state).eval_thunk()
+}
+
+impl<'id> Eval<'id> for &ColoredExpr<'id> {
+    fn eval<'a>(self, state: EvalState<'id, 'a>) -> RuntimeValue<'id, 'a> {
+        match self.expr() {
+            MirExpr::Lambda(lambda) => lambda.eval(state),
+            MirExpr::LambdaCall(lambda_call) => lambda_call.eval(state),
+            MirExpr::Literal(literal) => literal.eval(state),
+
+            MirExpr::Intrinsic(intrinsic) => intrinsic.eval(state),
+            MirExpr::Param(param) => state.callstack[param.nesting_depth()].clone(),
+        }
+    }
+}
+
+impl<'id> Eval<'id> for ArenaId<'id> {
+    fn eval<'a>(self, state: EvalState<'id, 'a>) -> RuntimeValue<'id, 'a> {
+        state.arena[self].eval(state)
+    }
+}
+
+impl<'b> Eval<'b> for &Literal {
+    fn eval<'a>(self, _: EvalState<'b, 'a>) -> RuntimeValue<'b, 'a> {
         match self {
-            Self::Integer(num) => RuntimeValue::Number(RuntimeNumber::Integer(*num)),
-            Self::Float(num) => RuntimeValue::Number(RuntimeNumber::Float(*num)),
+            Literal::Integer(num) => RuntimeValue::Number(RuntimeNumber::Integer(*num)),
+            Literal::Float(num) => RuntimeValue::Number(RuntimeNumber::Float(*num)),
 
             _ => todo!(),
         }
     }
 }
 
-impl<'b> Eval<'b> for MirLambda<'b> {
-    fn eval(&self, callstack: &[RuntimeValue<'b>]) -> RuntimeValue<'b> {
-        assert!(self.depth() <= callstack.len());
+impl<'b> Eval<'b> for &MirLambda<'b> {
+    fn eval<'a>(self, state: EvalState<'b, 'a>) -> RuntimeValue<'b, 'a> {
+        assert!(self.depth() <= state.callstack.len());
 
         RuntimeValue::Lambda(RuntimeLambda::new(
-            self.body(),
-            callstack[..self.depth()].to_vec(), // TODO(perf): I can prob do this with refs?
+            *self.body(),
+            state.callstack[..self.depth()].to_vec(), // TODO(perf): I can prob do this with refs?
         ))
-    }
-}
-
-impl<'b> Eval<'b> for Expr<'b> {
-    fn eval(&self, callstack: &[RuntimeValue<'b>]) -> RuntimeValue<'b> {
-        match self {
-            Self::Lambda(lambda) => lambda.eval(callstack),
-            Self::LambdaCall(lambda_call) => lambda_call.eval(callstack),
-            Self::Literal(literal) => literal.eval(callstack),
-
-            Self::Intrinsic(intrinsic) => intrinsic.eval(callstack),
-            Self::Param(param) => callstack[param.nesting_depth()].clone(),
-
-            Self::Deferred(deferred) => deferred
-                .get()
-                .expect("deferred expressions should be resolved at eval time")
-                .eval(callstack),
-        }
     }
 }
