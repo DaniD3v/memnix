@@ -1,27 +1,26 @@
 use crate::{
     eval::{
         Eval, EvalState,
+        error::EvalError,
         value::{RuntimeValue, Thunk},
     },
     mir::MirLambdaCall,
 };
 
 impl<'id> Eval<'id> for &MirLambdaCall<'id> {
-    fn eval<'a>(self, state: EvalState<'id, 'a>) -> RuntimeValue<'id, 'a> {
-        let evaluated = self.lambda().eval(state).eval_thunk();
-        let RuntimeValue::Lambda(lambda) = evaluated else {
-            panic!("self: {:?}; eval: {:?}", self, evaluated);
-            // TODO other error for EvalError
-            // return Err(EvalError::NotALambda);
+    fn eval(self, state: EvalState<'id, '_>) -> RuntimeValue<'id> {
+        let lambda = self.lambda().eval(state.clone()).eval_thunk(state.clone());
+        let RuntimeValue::Lambda(runtime_lambda) = lambda else {
+            eprintln!("self: {:?}; eval: {:?}", self, lambda);
+            return RuntimeValue::Error(EvalError::NotALambda);
         };
-        let arg = RuntimeValue::Thunk(Thunk::new(*self.argument(), state));
 
-        let mut callstack = lambda.captures().to_owned();
-        callstack.push(arg);
+        // TODO: the thunk actually only needs the callstack
+        // so I can simply split state instead of cloning
+        let arg = Thunk::new(*self.argument(), state.callstack);
 
-        // TODO: leaks the callstack on every call — replace with proper frame ownership (Rc/arena)
-        lambda.body().eval(EvalState {
-            callstack: callstack.leak(),
+        runtime_lambda.body().eval(EvalState {
+            callstack: runtime_lambda.captures().with_pushed(arg),
             arena: state.arena,
         })
     }

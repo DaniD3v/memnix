@@ -1,0 +1,59 @@
+
+Only cache lambda calls because:
+
+all actual computations use builtins, builtins are normal fns -> cached
+
+what about huge attrsets actually?
+n
+
+
+impl:
+
+there is a new trait
+
+/// Invariant:
+///
+/// Function inputs must only be hashed after the function has executed.
+// This implies that thunks that were still not evaluated were not accesses.
+
+// lets us compute the hash of not accessed thunks in O(1) with a placeholder
+
+// Misinformation:
+// and speeds up functions that have unused inputs
+// this doesn't work.
+// e.g. builtins.if cond x y
+// only evas x if `cond == true`
+// I can embed this in the colorexpr later bc it works very nice in the same pass
+// maybe I'll have to think abt how that works in an scc
+
+EvalHash {
+
+
+}
+
+thunks -> Rc<>
+
+thunks are updated to lazily
+memoize with a oncecell
+
+before I said I can check whether a function needs a thunk based on whether its evaluated but:
+in my cache I can store which inputs are actually needed
+
+Callstack could have
+
+
+after a function body is evaluated
+
+```nix
+lambda.body().eval(EvalState {
+    callstack: callstack.leak(),
+    arena: state.arena,
+})
+
+--> here <--
+```
+
+I have to hash the inputs:
+
+
+

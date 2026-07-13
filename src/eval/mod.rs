@@ -2,56 +2,62 @@
 
 mod builtins;
 mod call_lambda;
+mod callstack;
 mod error;
 mod value;
 
 use crate::{
     Arena, ArenaId,
     coloring::{ColorableRootExpr, ColoredExpr},
-    eval::value::{RuntimeLambda, RuntimeNumber, RuntimeValue},
+    eval::{
+        callstack::Callstack,
+        value::{RuntimeLambda, RuntimeNumber, RuntimeValue},
+    },
     mir::{Literal, MirExpr, MirLambda},
 };
 
 pub trait Eval<'id> {
-    fn eval<'a>(self, state: EvalState<'id, 'a>) -> RuntimeValue<'id, 'a>;
+    fn eval(self, state: EvalState<'id, '_>) -> RuntimeValue<'id>;
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct EvalState<'id, 'a> {
-    callstack: &'a [RuntimeValue<'id, 'a>],
+    callstack: Callstack<'id>,
     arena: &'a Arena<'id, ColoredExpr<'id>>,
 }
 
-pub fn eval_root_expr<'id, 'a>(root: &'a ColorableRootExpr<'id>) -> RuntimeValue<'id, 'a> {
+pub fn eval_root_expr<'id>(root: &ColorableRootExpr<'id>) -> RuntimeValue<'id> {
     let state = EvalState {
-        callstack: &[],
+        callstack: Callstack::default(),
         arena: root.arena(),
     };
 
-    root.root_node().eval(state).eval_thunk()
+    root.root_node().eval(state.clone()).eval_thunk(state)
 }
 
 impl<'id> Eval<'id> for &ColoredExpr<'id> {
-    fn eval<'a>(self, state: EvalState<'id, 'a>) -> RuntimeValue<'id, 'a> {
+    fn eval(self, state: EvalState<'id, '_>) -> RuntimeValue<'id> {
         match self.expr() {
             MirExpr::Lambda(lambda) => lambda.eval(state),
             MirExpr::LambdaCall(lambda_call) => lambda_call.eval(state),
             MirExpr::Literal(literal) => literal.eval(state),
 
             MirExpr::Intrinsic(intrinsic) => intrinsic.eval(state),
-            MirExpr::Param(param) => state.callstack[param.nesting_depth()].clone(),
+            MirExpr::Param(param) => {
+                RuntimeValue::Thunk(state.callstack[param.nesting_depth()].clone())
+            }
         }
     }
 }
 
 impl<'id> Eval<'id> for ArenaId<'id> {
-    fn eval<'a>(self, state: EvalState<'id, 'a>) -> RuntimeValue<'id, 'a> {
+    fn eval(self, state: EvalState<'id, '_>) -> RuntimeValue<'id> {
         state.arena[self].eval(state)
     }
 }
 
 impl<'b> Eval<'b> for &Literal {
-    fn eval<'a>(self, _: EvalState<'b, 'a>) -> RuntimeValue<'b, 'a> {
+    fn eval(self, _: EvalState<'b, '_>) -> RuntimeValue<'b> {
         match self {
             Literal::Integer(num) => RuntimeValue::Number(RuntimeNumber::Integer(*num)),
             Literal::Float(num) => RuntimeValue::Number(RuntimeNumber::Float(*num)),
@@ -62,12 +68,12 @@ impl<'b> Eval<'b> for &Literal {
 }
 
 impl<'b> Eval<'b> for &MirLambda<'b> {
-    fn eval<'a>(self, state: EvalState<'b, 'a>) -> RuntimeValue<'b, 'a> {
+    fn eval(self, state: EvalState<'b, '_>) -> RuntimeValue<'b> {
         assert!(self.depth() <= state.callstack.len());
 
         RuntimeValue::Lambda(RuntimeLambda::new(
             *self.body(),
-            state.callstack[..self.depth()].to_vec(), // TODO(perf): I can prob do this with refs?
+            state.callstack.prefix(self.depth()),
         ))
     }
 }

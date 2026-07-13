@@ -5,7 +5,11 @@ use std::{
 
 use ordered_float::NotNan;
 
-use crate::eval::{builtins::FromRuntimeValue, error::EvalError, value::RuntimeValue};
+use crate::eval::{
+    EvalState,
+    error::EvalError,
+    value::{FromThunk, RuntimeValue, Thunk},
+};
 
 #[derive(Clone, Eq, Debug)]
 pub enum RuntimeNumber {
@@ -22,9 +26,9 @@ impl RuntimeNumber {
     }
 }
 
-impl<'b> FromRuntimeValue<'b, '_> for RuntimeNumber {
-    fn from(value: RuntimeValue<'b, '_>) -> Result<Self, EvalError> {
-        match value.eval_thunk() {
+impl<'b> FromThunk<'b> for RuntimeNumber {
+    fn from_thunk(value: Thunk<'b>, state: EvalState<'b, '_>) -> Result<Self, EvalError> {
+        match value.force(state) {
             RuntimeValue::Number(ret) => Ok(ret),
             _ => Err(EvalError::WrongType),
         }

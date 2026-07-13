@@ -4,6 +4,7 @@ use getset::Getters;
 
 use crate::{arena::DebugWith, generic_lang::WithExprType};
 
+// TODO: copy getter when `E: Copy`
 #[derive(Debug, Getters)]
 #[getset(get = "pub")]
 pub struct GenericLambdaCall<E> {

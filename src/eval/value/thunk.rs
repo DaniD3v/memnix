@@ -1,43 +1,65 @@
-use std::fmt::{self, Debug};
+use std::{cell::RefCell, rc::Rc};
 
 use crate::{
     ArenaId,
-    eval::{Eval, EvalState, value::RuntimeValue},
+    eval::{Eval, EvalState, callstack::Callstack, error::EvalError, value::RuntimeValue},
 };
 
-#[derive(Clone)]
-pub struct Thunk<'id, 'a> {
-    expr: ArenaId<'id>,
-    state: EvalState<'id, 'a>,
+#[derive(Clone, Debug)]
+pub struct Thunk<'id>(Rc<RefCell<ThunkState<'id>>>);
+
+#[derive(Clone, Debug)]
+enum ThunkState<'id> {
+    Evaluated(RuntimeValue<'id>),
+
+    // Placeholder to allow swapping out of the `RefCell`
+    Evaluating,
+
+    Deferred {
+        expr: ArenaId<'id>,
+        callstack: Callstack<'id>,
+    },
 }
 
-impl<'id, 'a> Thunk<'id, 'a> {
-    pub fn new(expr: ArenaId<'id>, state: EvalState<'id, 'a>) -> Self {
-        Self { expr, state }
+pub trait FromThunk<'id>: Sized {
+    fn from_thunk(value: Thunk<'id>, state: EvalState<'id, '_>) -> Result<Self, EvalError>;
+}
+
+impl<'id> Thunk<'id> {
+    pub fn new(expr: ArenaId<'id>, callstack: Callstack<'id>) -> Self {
+        Self(Rc::new(RefCell::new(ThunkState::Deferred {
+            expr,
+            callstack,
+        })))
     }
 
-    pub fn eval(self) -> RuntimeValue<'id, 'a> {
-        match self.expr.eval(self.state) {
-            RuntimeValue::Thunk(thunk) => thunk.eval(),
-            any => any,
+    pub fn force(&self, state: EvalState<'id, '_>) -> RuntimeValue<'id> {
+        if let ThunkState::Evaluated(value) = &*self.0.borrow() {
+            return value.clone();
         }
+
+        let ThunkState::Deferred { expr, callstack } = self.0.replace(ThunkState::Evaluating)
+        else {
+            unreachable!()
+        };
+
+        let res = expr
+            .eval(EvalState {
+                callstack,
+                arena: state.arena,
+            })
+            .eval_thunk(state);
+        self.0.replace(ThunkState::Evaluated(res.clone()));
+
+        res
     }
 }
 
-impl<'b> RuntimeValue<'b, '_> {
-    pub fn eval_thunk(self) -> Self {
+impl<'id> RuntimeValue<'id> {
+    pub fn eval_thunk(self, state: EvalState<'id, '_>) -> Self {
         match self {
-            Self::Thunk(thunk) => thunk.eval(),
+            Self::Thunk(thunk) => thunk.force(state),
             any => any,
         }
-    }
-}
-
-impl<'id> Debug for Thunk<'id, '_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Thunk")
-            .field("expr", &self.expr)
-            .field("callstack", &self.state.callstack)
-            .finish()
     }
 }
