@@ -28,7 +28,7 @@ impl RuntimeNumber {
 
 impl<'b> FromThunk<'b> for RuntimeNumber {
     fn from_thunk(value: Thunk<'b>, state: EvalState<'b, '_>) -> Result<Self, EvalError> {
-        match value.force(state) {
+        match value.force(state)? {
             RuntimeValue::Number(ret) => Ok(ret),
             _ => Err(EvalError::WrongType),
         }

@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use crate::{
     ArenaId,
-    eval::{Eval, EvalState, callstack::Callstack, error::EvalError, value::RuntimeValue},
+    eval::{Eval, EvalResult, EvalState, callstack::Callstack, error::EvalError, value::RuntimeValue},
 };
 
 #[derive(Clone, Debug)]
@@ -10,7 +10,7 @@ pub struct Thunk<'id>(Rc<RefCell<ThunkState<'id>>>);
 
 #[derive(Clone, Debug)]
 enum ThunkState<'id> {
-    Evaluated(RuntimeValue<'id>),
+    Evaluated(EvalResult<'id>),
 
     // Placeholder to allow swapping out of the `RefCell`
     Evaluating,
@@ -33,7 +33,7 @@ impl<'id> Thunk<'id> {
         })))
     }
 
-    pub fn force(&self, state: EvalState<'id, '_>) -> RuntimeValue<'id> {
+    pub fn force(&self, state: EvalState<'id, '_>) -> EvalResult<'id> {
         if let ThunkState::Evaluated(value) = &*self.0.borrow() {
             return value.clone();
         }
@@ -48,7 +48,7 @@ impl<'id> Thunk<'id> {
                 callstack,
                 arena: state.arena,
             })
-            .eval_thunk(state);
+            .and_then(|value| value.eval_thunk(state));
         self.0.replace(ThunkState::Evaluated(res.clone()));
 
         res
@@ -56,10 +56,10 @@ impl<'id> Thunk<'id> {
 }
 
 impl<'id> RuntimeValue<'id> {
-    pub fn eval_thunk(self, state: EvalState<'id, '_>) -> Self {
+    pub fn eval_thunk(self, state: EvalState<'id, '_>) -> EvalResult<'id> {
         match self {
             Self::Thunk(thunk) => thunk.force(state),
-            any => any,
+            any => Ok(any),
         }
     }
 }

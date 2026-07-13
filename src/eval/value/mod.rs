@@ -18,8 +18,6 @@ pub enum RuntimeValue<'id> {
     Number(RuntimeNumber),
     Thunk(Thunk<'id>),
     Bool(bool),
-
-    Error(EvalError),
 }
 
 impl<'id> FromThunk<'id> for RuntimeValue<'id> {
@@ -30,7 +28,7 @@ impl<'id> FromThunk<'id> for RuntimeValue<'id> {
 
 impl<'b> FromThunk<'b> for bool {
     fn from_thunk(value: Thunk<'b>, state: EvalState<'b, '_>) -> Result<Self, EvalError> {
-        match value.force(state) {
+        match value.force(state)? {
             RuntimeValue::Bool(ret) => Ok(ret),
             _ => Err(EvalError::WrongType),
         }
