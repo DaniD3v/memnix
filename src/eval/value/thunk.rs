@@ -1,8 +1,13 @@
 use std::{cell::RefCell, rc::Rc};
 
+use blake3::Hasher;
+
 use crate::{
     ArenaId,
-    eval::{Eval, EvalResult, EvalState, callstack::Callstack, error::EvalError, value::RuntimeValue},
+    eval::{
+        Eval, EvalResult, EvalState, callstack::Callstack, error::EvalError, hash::EvalHash,
+        value::RuntimeValue,
+    },
 };
 
 #[derive(Clone, Debug)]
@@ -60,6 +65,21 @@ impl<'id> RuntimeValue<'id> {
         match self {
             Self::Thunk(thunk) => thunk.force(state),
             any => Ok(any),
+        }
+    }
+}
+
+impl<'id> EvalHash<'id> for &Thunk<'id> {
+    fn hash(self, hasher: &mut Hasher, state: &EvalState<'id, '_>) {
+        match &*self.0.borrow() {
+            ThunkState::Evaluated(evaluated) => evaluated.hash(hasher, state),
+            ThunkState::Evaluating => unreachable!(),
+            ThunkState::Deferred {
+                expr: _,
+                callstack: _,
+            } => {
+                hasher.update(b"deferred_thunk");
+            }
         }
     }
 }

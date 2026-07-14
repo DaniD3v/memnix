@@ -2,6 +2,7 @@ mod builtins;
 mod call_lambda;
 mod callstack;
 mod error;
+mod hash;
 mod value;
 
 use crate::{
@@ -44,9 +45,9 @@ impl<'id> Eval<'id> for &ColoredExpr<'id> {
             MirExpr::Literal(literal) => literal.eval(state),
 
             MirExpr::Intrinsic(intrinsic) => intrinsic.eval(state),
-            MirExpr::Param(param) => {
-                Ok(RuntimeValue::Thunk(state.callstack[param.nesting_depth()].clone()))
-            }
+            MirExpr::Param(param) => Ok(RuntimeValue::Thunk(
+                state.callstack[param.nesting_depth()].clone(),
+            )),
         }
     }
 }
