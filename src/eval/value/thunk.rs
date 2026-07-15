@@ -5,7 +5,10 @@ use blake3::Hasher;
 use crate::{
     ArenaId,
     eval::{
-        Eval, EvalResult, EvalState, callstack::Callstack, error::EvalError, hash::EvalHash,
+        Eval, EvalResult, EvalState,
+        callstack::Callstack,
+        error::EvalError,
+        hash::{EvalHash, TypeDiscriminant},
         value::RuntimeValue,
     },
 };
@@ -74,12 +77,7 @@ impl<'id> EvalHash<'id> for &Thunk<'id> {
         match &*self.0.borrow() {
             ThunkState::Evaluated(evaluated) => evaluated.hash(hasher, state),
             ThunkState::Evaluating => unreachable!(),
-            ThunkState::Deferred {
-                expr: _,
-                callstack: _,
-            } => {
-                hasher.update(b"deferred_thunk");
-            }
+            ThunkState::Deferred { .. } => TypeDiscriminant::DeferredThunk.apply(hasher),
         }
     }
 }

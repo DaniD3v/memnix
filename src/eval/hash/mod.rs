@@ -14,6 +14,19 @@ pub trait EvalHash<'id> {
     fn hash(self, hasher: &mut Hasher, state: &EvalState<'id, '_>);
 }
 
+#[repr(u8)]
+pub enum TypeDiscriminant {
+    RuntimeLambda,
+
+    DeferredThunk,
+}
+
+impl TypeDiscriminant {
+    pub fn apply(self, hasher: &mut Hasher) {
+        hasher.update(&[self as u8]);
+    }
+}
+
 impl<'id> EvalHash<'id> for &EvalResult<'id> {
     fn hash(self, hasher: &mut Hasher, state: &EvalState<'id, '_>) {
         let Ok(value) = self else {
@@ -36,6 +49,8 @@ impl<'id> EvalHash<'id> for ArenaId<'id> {
 
 impl<'id> EvalHash<'id> for &RuntimeLambda<'id> {
     fn hash(self, hasher: &mut Hasher, state: &EvalState<'id, '_>) {
+        TypeDiscriminant::RuntimeLambda.apply(hasher);
+
         // TODO: only hash captures that are actually used
         for capture in self.captures().iter() {
             capture.hash(hasher, state)

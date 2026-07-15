@@ -19,20 +19,37 @@ impl<'id> Colorable<'id> for &MirExpr<'id> {
     }
 }
 
+#[repr(u8)]
+enum TypeDiscriminant {
+    NonePlaceholder,
+    LambdaCall,
+    Lambda,
+    Param,
+    Intrinsic,
+
+    LiteralInteger,
+}
+
+impl TypeDiscriminant {
+    fn apply(self, hasher: &mut blake3::Hasher) {
+        hasher.update(&[self as u8]);
+    }
+}
+
 impl<'id> Colorable<'id> for ArenaId<'id> {
     fn depend_on(self, hasher: &mut Hasher, arena: &Arena<'id, ColoredExpr<'_>>) {
-        let bytes: &[u8] = match arena[self].color() {
-            Some(color) => color.as_bytes(),
-            None => b"none_placeholder",
+        match arena[self].color() {
+            Some(color) => {
+                hasher.update(color.as_bytes());
+            }
+            None => TypeDiscriminant::NonePlaceholder.apply(hasher),
         };
-
-        hasher.update(bytes);
     }
 }
 
 impl<'id> Colorable<'id> for &MirLambdaCall<'id> {
     fn depend_on(self, hasher: &mut Hasher, arena: &Arena<'id, ColoredExpr<'_>>) {
-        hasher.update(b"lambda_call");
+        TypeDiscriminant::LambdaCall.apply(hasher);
 
         self.children().for_each(|(idx, label)| {
             idx.depend_on(hasher, arena);
@@ -43,7 +60,7 @@ impl<'id> Colorable<'id> for &MirLambdaCall<'id> {
 
 impl<'id> Colorable<'id> for &MirLambda<'id> {
     fn depend_on(self, hasher: &mut Hasher, arena: &Arena<'id, ColoredExpr<'_>>) {
-        hasher.update(b"lambda");
+        TypeDiscriminant::Lambda.apply(hasher);
 
         self.param().clone().depend_on(hasher, arena);
         self.children().for_each(|(idx, label)| {
@@ -53,31 +70,29 @@ impl<'id> Colorable<'id> for &MirLambda<'id> {
     }
 }
 
-impl<'id> Colorable<'id> for Literal {
-    fn depend_on(self, hasher: &mut Hasher, _: &Arena<'id, ColoredExpr<'_>>) {
-        hasher.update(b"literal");
-
-        match self {
-            Self::Integer(inner) => {
-                hasher.update(b"integer");
-                hasher.update(&inner.to_le_bytes());
-            }
-
-            _ => todo!(),
-        };
-    }
-}
-
 impl<'id> Colorable<'id> for Param {
     fn depend_on(self, hasher: &mut blake3::Hasher, _: &Arena<'id, ColoredExpr>) {
-        hasher.update(b"param");
+        TypeDiscriminant::Param.apply(hasher);
         hasher.update(&self.nesting_depth().to_le_bytes());
     }
 }
 
 impl<'id> Colorable<'id> for Intrinsic {
     fn depend_on(self, hasher: &mut blake3::Hasher, _: &Arena<'id, ColoredExpr>) {
-        hasher.update(b"intrinsic");
+        TypeDiscriminant::Intrinsic.apply(hasher);
         hasher.update(&[self as u8]);
+    }
+}
+
+impl<'id> Colorable<'id> for Literal {
+    fn depend_on(self, hasher: &mut Hasher, _: &Arena<'id, ColoredExpr<'_>>) {
+        match self {
+            Self::Integer(inner) => {
+                TypeDiscriminant::LiteralInteger.apply(hasher);
+                hasher.update(&inner.to_le_bytes());
+            }
+
+            _ => todo!(),
+        };
     }
 }
