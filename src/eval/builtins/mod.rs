@@ -2,14 +2,14 @@ mod get_param;
 
 use crate::{
     eval::{
-        Eval, EvalResult, EvalState, RuntimeValue, builtins::get_param::get_params,
+        CacheBackend, Eval, EvalResult, EvalState, RuntimeValue, builtins::get_param::get_params,
         error::EvalError, value::RuntimeNumber,
     },
     mir::Intrinsic,
 };
 
-impl<'id> Eval<'id> for Intrinsic {
-    fn eval(self, state: EvalState<'id, '_>) -> EvalResult<'id> {
+impl<'id, B: CacheBackend> Eval<'id, B> for Intrinsic {
+    fn eval(self, state: EvalState<'id, '_, B>) -> EvalResult<'id> {
         match self {
             Self::IfElse => if_else(state),
             Self::LessOrEq => less_or_eq(state),
@@ -24,23 +24,23 @@ impl<'id> Eval<'id> for Intrinsic {
     }
 }
 
-pub fn if_else<'id>(state: EvalState<'id, '_>) -> EvalResult<'id> {
+pub fn if_else<'id, B: CacheBackend>(state: EvalState<'id, '_, B>) -> EvalResult<'id> {
     let (condition, then_expr, else_call): (bool, RuntimeValue, RuntimeValue) = get_params(state)?;
 
     Ok(if condition { then_expr } else { else_call })
 }
 
-pub fn less_or_eq<'id>(state: EvalState<'id, '_>) -> EvalResult<'id> {
+pub fn less_or_eq<'id, B: CacheBackend>(state: EvalState<'id, '_, B>) -> EvalResult<'id> {
     let (l, r): (RuntimeNumber, RuntimeNumber) = get_params(state)?;
     Ok(RuntimeValue::Bool(l <= r))
 }
 
-pub fn add<'id>(state: EvalState<'id, '_>) -> EvalResult<'id> {
+pub fn add<'id, B: CacheBackend>(state: EvalState<'id, '_, B>) -> EvalResult<'id> {
     let (l, r): (RuntimeNumber, RuntimeNumber) = get_params(state)?;
     Ok(RuntimeValue::Number(l + r))
 }
 
-pub fn subtract<'id>(state: EvalState<'id, '_>) -> EvalResult<'id> {
+pub fn subtract<'id, B: CacheBackend>(state: EvalState<'id, '_, B>) -> EvalResult<'id> {
     let (l, r): (RuntimeNumber, RuntimeNumber) = get_params(state)?;
     Ok(RuntimeValue::Number(l + (-r)))
 }

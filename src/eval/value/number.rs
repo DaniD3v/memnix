@@ -4,14 +4,15 @@ use std::{
 };
 
 use ordered_float::NotNan;
+use serde::{Deserialize, Serialize};
 
 use crate::eval::{
-    EvalState,
+    CacheBackend, EvalState,
     error::EvalError,
     value::{FromThunk, RuntimeValue, Thunk},
 };
 
-#[derive(Clone, Eq, Debug)]
+#[derive(Serialize, Deserialize, Clone, Eq, Debug)]
 pub enum RuntimeNumber {
     Integer(i64),
     Float(NotNan<f64>),
@@ -26,8 +27,8 @@ impl RuntimeNumber {
     }
 }
 
-impl<'b> FromThunk<'b> for RuntimeNumber {
-    fn from_thunk(value: Thunk<'b>, state: EvalState<'b, '_>) -> Result<Self, EvalError> {
+impl<'b, B: CacheBackend> FromThunk<'b, B> for RuntimeNumber {
+    fn from_thunk(value: Thunk<'b>, state: EvalState<'b, '_, B>) -> Result<Self, EvalError> {
         match value.force(state)? {
             RuntimeValue::Number(ret) => Ok(ret),
             _ => Err(EvalError::WrongType),

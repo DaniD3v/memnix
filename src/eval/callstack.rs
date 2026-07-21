@@ -18,6 +18,10 @@ impl<'id> Callstack<'id> {
     pub fn with_pushed(&self, arg: Thunk<'id>) -> Self {
         Self(self.0.iter().cloned().chain([arg]).collect())
     }
+
+    pub fn from_thunks(thunks: Vec<Thunk<'id>>) -> Self {
+        Self(Rc::from(thunks))
+    }
 }
 
 impl<'id> Deref for Callstack<'id> {

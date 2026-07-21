@@ -3,6 +3,10 @@ mod colorable_impl;
 mod expr;
 mod graph;
 
+use crate::Arena;
+
+use serde::{Deserialize, Serialize};
+
 use std::{
     cmp::Ordering,
     fmt::{Debug, Formatter},
@@ -11,8 +15,6 @@ use std::{
 pub use algorithm::color_graph;
 pub use expr::{ColorableRootExpr, ColoredExpr};
 pub use graph::{ArenaBackedGraph, AsDot};
-
-use crate::Arena;
 
 /// Uniquely identifies a nix object.
 ///
@@ -34,7 +36,7 @@ pub trait Colorable<'id>: Sized {
     }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Color(pub blake3::Hash);
 
 impl Color {

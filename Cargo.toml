@@ -8,9 +8,12 @@ rnix = "0.14.0"
 rowan = "0.16.1"
 
 clap = { version = "4.6.1", features = ["derive"] }
-ordered-float = "5.3.0"
+ordered-float = { version = "5.3.0", features = ["serde"] }
+
 petgraph = "0.8.3"
-blake3 = "1.8.5"
+blake3 = { version = "1.8.5", features = ["serde"] }
+cached = { version = "2.0.2", features = ["disk_store"] }
+serde = { version = "1.0.228", features = ["derive"] }
 
 thiserror = "2.0.18"
 getset = "0.1.6"

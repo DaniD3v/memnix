@@ -1,14 +1,14 @@
 use crate::{
     eval::{
-        Eval, EvalResult, EvalState,
+        CacheBackend, Eval, EvalResult, EvalState,
         error::EvalError,
         value::{RuntimeValue, Thunk},
     },
     mir::MirLambdaCall,
 };
 
-impl<'id> Eval<'id> for &MirLambdaCall<'id> {
-    fn eval(self, state: EvalState<'id, '_>) -> EvalResult<'id> {
+impl<'id, B: CacheBackend> Eval<'id, B> for &MirLambdaCall<'id> {
+    fn eval(self, state: EvalState<'id, '_, B>) -> EvalResult<'id> {
         let lambda = self
             .lambda()
             .eval(state.clone())?
@@ -24,7 +24,7 @@ impl<'id> Eval<'id> for &MirLambdaCall<'id> {
 
         runtime_lambda.body().eval(EvalState {
             callstack: runtime_lambda.captures().with_pushed(arg),
-            arena: state.arena,
+            ctx: state.ctx,
         })
     }
 }

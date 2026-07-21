@@ -1,11 +1,11 @@
 use std::fmt::{self, Formatter};
 
-use super::{LazyArena, LazyArenaId, MaybeOrRef};
 use crate::{
     ArenaId,
     arena::{
-        DebugWith,
+        DebugWith, LazyArena, LazyArenaId,
         debug::{DebugArena, GenericDebugState},
+        lazy_arena::MaybeOrRef,
     },
 };
 
