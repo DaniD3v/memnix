@@ -1,8 +1,8 @@
 use crate::{
     ArenaId,
     eval::{
-        CacheBackend, Eval, EvalResult, EvalState, callstack::Callstack, error::EvalError,
-        value::RuntimeValue,
+        CacheBackend, Eval, EvalState, ValueResult, callstack::Callstack, error::EvalError,
+        value::Value,
     },
 };
 
@@ -18,7 +18,7 @@ pub struct Thunk<'id> {
 
 #[derive(Clone, Debug)]
 pub enum ThunkState<'id> {
-    Forced(EvalResult<'id>),
+    Forced(ValueResult<'id>),
 
     // Placeholder to allow swapping out of the `RefCell`
     Evaluating,
@@ -40,13 +40,13 @@ impl<'id> Thunk<'id> {
         }
     }
 
-    pub fn new_forced(result: EvalResult<'id>) -> Self {
+    pub fn new_forced(result: ValueResult<'id>) -> Self {
         Self {
             state: Rc::new(RefCell::new(ThunkState::Forced(result))),
         }
     }
 
-    pub fn force<B: CacheBackend>(&self, state: EvalState<'id, '_, B>) -> EvalResult<'id> {
+    pub fn force<B: CacheBackend>(&self, state: EvalState<'id, '_, B>) -> ValueResult<'id> {
         if let ThunkState::Forced(value) = &*self.state.borrow() {
             return value.clone();
         }
@@ -72,8 +72,8 @@ impl<'id> Thunk<'id> {
     }
 }
 
-impl<'id> RuntimeValue<'id> {
-    pub fn eval_thunk<B: CacheBackend>(self, state: EvalState<'id, '_, B>) -> EvalResult<'id> {
+impl<'id> Value<'id> {
+    pub fn eval_thunk<B: CacheBackend>(self, state: EvalState<'id, '_, B>) -> ValueResult<'id> {
         match self {
             Self::Thunk(thunk) => thunk.force(state),
             any => Ok(any),

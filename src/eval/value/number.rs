@@ -9,16 +9,16 @@ use serde::{Deserialize, Serialize};
 use crate::eval::{
     CacheBackend, EvalState,
     error::EvalError,
-    value::{FromThunk, RuntimeValue, Thunk},
+    value::{FromThunk, Thunk, Value},
 };
 
 #[derive(Serialize, Deserialize, Clone, Eq, Debug)]
-pub enum RuntimeNumber {
+pub enum Number {
     Integer(i64),
     Float(NotNan<f64>),
 }
 
-impl RuntimeNumber {
+impl Number {
     fn as_float(&self) -> NotNan<f64> {
         match self {
             Self::Float(f) => *f,
@@ -27,17 +27,17 @@ impl RuntimeNumber {
     }
 }
 
-impl<'b, B: CacheBackend> FromThunk<'b, B> for RuntimeNumber {
+impl<'b, B: CacheBackend> FromThunk<'b, B> for Number {
     fn from_thunk(value: Thunk<'b>, state: EvalState<'b, '_, B>) -> Result<Self, EvalError> {
         match value.force(state)? {
-            RuntimeValue::Number(ret) => Ok(ret),
+            Value::Number(ret) => Ok(ret),
             _ => Err(EvalError::WrongType),
         }
     }
 }
 
-impl Add for RuntimeNumber {
-    type Output = RuntimeNumber;
+impl Add for Number {
+    type Output = Number;
 
     fn add(self, other: Self) -> Self::Output {
         match (self, other) {
@@ -47,8 +47,8 @@ impl Add for RuntimeNumber {
     }
 }
 
-impl Neg for RuntimeNumber {
-    type Output = RuntimeNumber;
+impl Neg for Number {
+    type Output = Number;
 
     fn neg(self) -> Self::Output {
         match self {
@@ -58,7 +58,7 @@ impl Neg for RuntimeNumber {
     }
 }
 
-impl PartialEq for RuntimeNumber {
+impl PartialEq for Number {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Integer(l), Self::Integer(r)) => l == r,
@@ -67,7 +67,7 @@ impl PartialEq for RuntimeNumber {
     }
 }
 
-impl Ord for RuntimeNumber {
+impl Ord for Number {
     fn cmp(&self, other: &Self) -> Ordering {
         match (self, other) {
             (Self::Integer(l), Self::Integer(r)) => l.cmp(r),
@@ -75,7 +75,7 @@ impl Ord for RuntimeNumber {
         }
     }
 }
-impl PartialOrd for RuntimeNumber {
+impl PartialOrd for Number {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }

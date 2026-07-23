@@ -1,19 +1,19 @@
 use crate::{
     eval::{
-        CacheBackend, Eval, EvalResult, EvalState,
+        CacheBackend, Eval, EvalState, ValueResult,
         error::EvalError,
-        value::{RuntimeValue, Thunk},
+        value::{Thunk, Value},
     },
     mir::MirLambdaCall,
 };
 
 impl<'id, B: CacheBackend> Eval<'id, B> for &MirLambdaCall<'id> {
-    fn eval(self, state: EvalState<'id, '_, B>) -> EvalResult<'id> {
+    fn eval(self, state: EvalState<'id, '_, B>) -> ValueResult<'id> {
         let lambda = self
             .lambda()
             .eval(state.clone())?
             .eval_thunk(state.clone())?;
-        let RuntimeValue::Lambda(runtime_lambda) = lambda else {
+        let Value::Lambda(runtime_lambda) = lambda else {
             eprintln!("self: {:?}; eval: {:?}", self, lambda);
             return Err(EvalError::NotALambda);
         };

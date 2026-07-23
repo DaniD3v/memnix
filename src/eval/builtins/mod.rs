@@ -2,14 +2,14 @@ mod get_param;
 
 use crate::{
     eval::{
-        CacheBackend, Eval, EvalResult, EvalState, RuntimeValue, builtins::get_param::get_params,
-        error::EvalError, value::RuntimeNumber,
+        CacheBackend, Eval, EvalState, Value, ValueResult, builtins::get_param::get_params,
+        error::EvalError, value::Number,
     },
     mir::Intrinsic,
 };
 
 impl<'id, B: CacheBackend> Eval<'id, B> for Intrinsic {
-    fn eval(self, state: EvalState<'id, '_, B>) -> EvalResult<'id> {
+    fn eval(self, state: EvalState<'id, '_, B>) -> ValueResult<'id> {
         match self {
             Self::IfElse => if_else(state),
             Self::LessOrEq => less_or_eq(state),
@@ -24,23 +24,23 @@ impl<'id, B: CacheBackend> Eval<'id, B> for Intrinsic {
     }
 }
 
-pub fn if_else<'id, B: CacheBackend>(state: EvalState<'id, '_, B>) -> EvalResult<'id> {
-    let (condition, then_expr, else_call): (bool, RuntimeValue, RuntimeValue) = get_params(state)?;
+pub fn if_else<'id, B: CacheBackend>(state: EvalState<'id, '_, B>) -> ValueResult<'id> {
+    let (condition, then_expr, else_call): (bool, Value, Value) = get_params(state)?;
 
     Ok(if condition { then_expr } else { else_call })
 }
 
-pub fn less_or_eq<'id, B: CacheBackend>(state: EvalState<'id, '_, B>) -> EvalResult<'id> {
-    let (l, r): (RuntimeNumber, RuntimeNumber) = get_params(state)?;
-    Ok(RuntimeValue::Bool(l <= r))
+pub fn less_or_eq<'id, B: CacheBackend>(state: EvalState<'id, '_, B>) -> ValueResult<'id> {
+    let (l, r): (Number, Number) = get_params(state)?;
+    Ok(Value::Bool(l <= r))
 }
 
-pub fn add<'id, B: CacheBackend>(state: EvalState<'id, '_, B>) -> EvalResult<'id> {
-    let (l, r): (RuntimeNumber, RuntimeNumber) = get_params(state)?;
-    Ok(RuntimeValue::Number(l + r))
+pub fn add<'id, B: CacheBackend>(state: EvalState<'id, '_, B>) -> ValueResult<'id> {
+    let (l, r): (Number, Number) = get_params(state)?;
+    Ok(Value::Number(l + r))
 }
 
-pub fn subtract<'id, B: CacheBackend>(state: EvalState<'id, '_, B>) -> EvalResult<'id> {
-    let (l, r): (RuntimeNumber, RuntimeNumber) = get_params(state)?;
-    Ok(RuntimeValue::Number(l + (-r)))
+pub fn subtract<'id, B: CacheBackend>(state: EvalState<'id, '_, B>) -> ValueResult<'id> {
+    let (l, r): (Number, Number) = get_params(state)?;
+    Ok(Value::Number(l + (-r)))
 }

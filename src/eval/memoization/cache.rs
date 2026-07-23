@@ -7,9 +7,9 @@ use crate::eval::{
     hash::{EvalHash, EvalHashable},
     memoization::{
         Disk,
-        runtime_value_record::{RecordRepr, ValueRecord},
+        value_record::{RecordRepr, ValueRecord},
     },
-    value::RuntimeValue,
+    value::Value,
 };
 
 pub struct Cache<B: CacheBackend> {
@@ -24,7 +24,7 @@ impl<B: CacheBackend> Cache<B> {
         &self,
         key: EvalHash,
         state: &EvalState<'id, '_, B>,
-    ) -> Option<RuntimeValue<'id>> {
+    ) -> Option<Value<'id>> {
         let result = expect_cache_failure(self.evals.cache_get(&key))?;
         Some(self.get_value(result, state))
     }
@@ -35,7 +35,7 @@ impl<B: CacheBackend> Cache<B> {
     pub fn store_result<'id>(
         &self,
         key: EvalHash,
-        result: &RuntimeValue<'id>,
+        result: &Value<'id>,
         state: &EvalState<'id, '_, B>,
     ) {
         let Some(result) = self.store_value(result, state) else {
@@ -48,11 +48,11 @@ impl<B: CacheBackend> Cache<B> {
         &self,
         hash: EvalHash,
         state: &EvalState<'id, '_, B>,
-    ) -> RuntimeValue<'id> {
+    ) -> Value<'id> {
         let record = expect_cache_failure(self.values.cache_get(&hash))
             .expect("the hash should be in the value store");
 
-        RuntimeValue::from_record(record, state)
+        Value::from_record(record, state)
     }
 
     /// Inserts `value` into the value store and returns its hash,
@@ -61,7 +61,7 @@ impl<B: CacheBackend> Cache<B> {
     /// Expects the records children to already be inserted
     pub(super) fn store_value<'id>(
         &self,
-        value: &RuntimeValue<'id>,
+        value: &Value<'id>,
         state: &EvalState<'id, '_, B>,
     ) -> Option<EvalHash> {
         let record = value

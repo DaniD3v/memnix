@@ -7,8 +7,8 @@ use crate::{
     ArenaId,
     coloring::ColoredExpr,
     eval::{
-        CacheBackend, EvalResult, EvalState,
-        value::{RuntimeLambda, RuntimeNumber, RuntimeValue, Thunk, thunk::ThunkState},
+        CacheBackend, EvalState, ValueResult,
+        value::{Lambda, Number, Thunk, Value, thunk::ThunkState},
     },
 };
 
@@ -72,7 +72,7 @@ pub fn hash_expr_with_callstack<'id, B: CacheBackend>(
     Some(EvalHash(hasher.finalize()))
 }
 
-impl<'id, B: CacheBackend> EvalHashable<'id, B> for &EvalResult<'id> {
+impl<'id, B: CacheBackend> EvalHashable<'id, B> for &ValueResult<'id> {
     fn hash(self, hasher: &mut Hasher, state: &EvalState<'id, '_, B>) {
         match self {
             Ok(value) => value.hash(hasher, state),
@@ -81,14 +81,14 @@ impl<'id, B: CacheBackend> EvalHashable<'id, B> for &EvalResult<'id> {
     }
 }
 
-impl<'id, B: CacheBackend> EvalHashable<'id, B> for &RuntimeValue<'id> {
+impl<'id, B: CacheBackend> EvalHashable<'id, B> for &Value<'id> {
     fn hash(self, hasher: &mut Hasher, state: &EvalState<'id, '_, B>) {
         match self {
-            RuntimeValue::Lambda(lambda) => lambda.hash(hasher, state),
-            RuntimeValue::Thunk(thunk) => thunk.hash(hasher, state),
+            Value::Lambda(lambda) => lambda.hash(hasher, state),
+            Value::Thunk(thunk) => thunk.hash(hasher, state),
 
-            RuntimeValue::Number(number) => number.hash(hasher, state),
-            RuntimeValue::Bool(value) => {
+            Value::Number(number) => number.hash(hasher, state),
+            Value::Bool(value) => {
                 TypeDiscriminant::Bool.apply(hasher);
                 hasher.update(&[*value as u8]);
             }
@@ -102,7 +102,7 @@ impl<'id, B: CacheBackend> EvalHashable<'id, B> for ArenaId<'id> {
     }
 }
 
-impl<'id, B: CacheBackend> EvalHashable<'id, B> for &RuntimeLambda<'id> {
+impl<'id, B: CacheBackend> EvalHashable<'id, B> for &Lambda<'id> {
     fn hash(self, hasher: &mut Hasher, state: &EvalState<'id, '_, B>) {
         TypeDiscriminant::RuntimeLambda.apply(hasher);
         hasher.update(state.arena()[self.body()].color().unwrap().as_bytes());
@@ -132,14 +132,14 @@ impl<'id, B: CacheBackend> EvalHashable<'id, B> for &Thunk<'id> {
     }
 }
 
-impl<'id, B: CacheBackend> EvalHashable<'id, B> for &RuntimeNumber {
+impl<'id, B: CacheBackend> EvalHashable<'id, B> for &Number {
     fn hash(self, hasher: &mut Hasher, _: &EvalState<'id, '_, B>) {
         match self {
-            RuntimeNumber::Integer(int) => {
+            Number::Integer(int) => {
                 TypeDiscriminant::Integer.apply(hasher);
                 hasher.update(&int.to_le_bytes());
             }
-            RuntimeNumber::Float(float) => {
+            Number::Float(float) => {
                 TypeDiscriminant::Float.apply(hasher);
                 // TODO: this has a few issues:
                 // -0 and +0 have different hashes

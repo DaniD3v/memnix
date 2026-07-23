@@ -16,17 +16,17 @@ use crate::{
         error::EvalError,
         hash::hash_expr_with_callstack,
         memoization::Cache,
-        value::{RuntimeLambda, RuntimeNumber, RuntimeValue},
+        value::{Lambda, Number, Value},
     },
     mir::{Literal, MirExpr, MirLambda},
 };
 
 pub use memoization::CacheBackend;
 
-pub type EvalResult<'id> = Result<RuntimeValue<'id>, EvalError>;
+pub type ValueResult<'id> = Result<Value<'id>, EvalError>;
 
 pub trait Eval<'id, B: CacheBackend> {
-    fn eval(self, state: EvalState<'id, '_, B>) -> EvalResult<'id>;
+    fn eval(self, state: EvalState<'id, '_, B>) -> ValueResult<'id>;
 }
 
 pub struct EvalState<'id, 'a, B: CacheBackend> {
@@ -70,7 +70,7 @@ impl<'id, 'a, B: CacheBackend> EvalState<'id, 'a, B> {
     }
 }
 
-pub fn eval_root_expr<'id>(root: &ColorableRootExpr<'id>) -> EvalResult<'id> {
+pub fn eval_root_expr<'id>(root: &ColorableRootExpr<'id>) -> ValueResult<'id> {
     let ctx = EvalCtx {
         arena: root.arena(),
         color_map: root
@@ -91,7 +91,7 @@ pub fn eval_root_expr<'id>(root: &ColorableRootExpr<'id>) -> EvalResult<'id> {
 }
 
 impl<'id, B: CacheBackend> Eval<'id, B> for &ColoredExpr<'id> {
-    fn eval(self, state: EvalState<'id, '_, B>) -> EvalResult<'id> {
+    fn eval(self, state: EvalState<'id, '_, B>) -> ValueResult<'id> {
         // TODO(perf):
         // pre-evaluate callstack thunks where it is known
         // through static analysis that the thunk must be evaluated
@@ -111,9 +111,9 @@ impl<'id, B: CacheBackend> Eval<'id, B> for &ColoredExpr<'id> {
             MirExpr::Literal(literal) => literal.eval(state.clone()),
 
             MirExpr::Intrinsic(intrinsic) => intrinsic.eval(state.clone()),
-            MirExpr::Param(param) => Ok(RuntimeValue::Thunk(
-                state.callstack[param.nesting_depth()].clone(),
-            )),
+            MirExpr::Param(param) => {
+                Ok(Value::Thunk(state.callstack[param.nesting_depth()].clone()))
+            }
         }?;
 
         if let Some(cache_key) = cache_key {
@@ -125,16 +125,16 @@ impl<'id, B: CacheBackend> Eval<'id, B> for &ColoredExpr<'id> {
 }
 
 impl<'id, B: CacheBackend> Eval<'id, B> for ArenaId<'id> {
-    fn eval(self, state: EvalState<'id, '_, B>) -> EvalResult<'id> {
+    fn eval(self, state: EvalState<'id, '_, B>) -> ValueResult<'id> {
         state.arena()[self].eval(state.clone())
     }
 }
 
 impl<'b, B: CacheBackend> Eval<'b, B> for &Literal {
-    fn eval(self, _: EvalState<'b, '_, B>) -> EvalResult<'b> {
+    fn eval(self, _: EvalState<'b, '_, B>) -> ValueResult<'b> {
         Ok(match self {
-            Literal::Integer(num) => RuntimeValue::Number(RuntimeNumber::Integer(*num)),
-            Literal::Float(num) => RuntimeValue::Number(RuntimeNumber::Float(*num)),
+            Literal::Integer(num) => Value::Number(Number::Integer(*num)),
+            Literal::Float(num) => Value::Number(Number::Float(*num)),
 
             _ => todo!(),
         })
@@ -142,10 +142,10 @@ impl<'b, B: CacheBackend> Eval<'b, B> for &Literal {
 }
 
 impl<'b, B: CacheBackend> Eval<'b, B> for &MirLambda<'b> {
-    fn eval(self, state: EvalState<'b, '_, B>) -> EvalResult<'b> {
+    fn eval(self, state: EvalState<'b, '_, B>) -> ValueResult<'b> {
         assert!(self.depth() <= state.callstack.len());
 
-        Ok(RuntimeValue::Lambda(RuntimeLambda::new(
+        Ok(Value::Lambda(Lambda::new(
             *self.body(),
             state.callstack.prefix(self.depth()),
         )))
