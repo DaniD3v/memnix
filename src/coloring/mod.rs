@@ -13,7 +13,7 @@ use std::{
 };
 
 pub use algorithm::color_graph;
-pub use expr::{ColorableRootExpr, ColoredExpr};
+pub use expr::{ColorableRootExpr, ColoredExpr, ColoredExprArena};
 pub use graph::{ArenaBackedGraph, AsDot};
 
 /// Uniquely identifies a nix object.

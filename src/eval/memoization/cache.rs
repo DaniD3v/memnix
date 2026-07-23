@@ -64,7 +64,9 @@ impl<B: CacheBackend> Cache<B> {
         value: &RuntimeValue<'id>,
         state: &EvalState<'id, '_, B>,
     ) -> Option<EvalHash> {
-        let record = value.clone().to_record(state)?;
+        let record = value
+            .clone()
+            .to_record(state.arena(), |value| self.store_value(value, state))?;
         let hash = value.compute_hash(state);
 
         expect_cache_failure(self.values.cache_set(hash, record));

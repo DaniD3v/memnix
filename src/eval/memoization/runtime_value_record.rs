@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    coloring::Color,
+    coloring::{Color, ColoredExprArena},
     eval::{
-        CacheBackend, EvalState,
+        CacheBackend, EvalResult, EvalState,
         callstack::Callstack,
         hash::EvalHash,
         value::{RuntimeLambda, RuntimeNumber, RuntimeValue, Thunk, thunk::ThunkState},
@@ -15,11 +15,8 @@ use crate::{
 /// Expressions are referenced by their `Color`,
 /// captures by their `EvalHash`.
 #[derive(Serialize, Deserialize, Clone)]
-pub(super) enum ValueRecord {
-    Lambda {
-        body: Color,
-        captures: Vec<EvalHash>,
-    },
+pub enum ValueRecord {
+    Lambda(LambdaRecord),
 
     // TODO: cache deferred thunks once lambdas only capture used params
     // TODO: cache `EvalError`s too
@@ -27,31 +24,54 @@ pub(super) enum ValueRecord {
     Bool(bool),
 }
 
-pub(super) trait RecordRepr<'id>: Sized {
-    fn to_record<B: CacheBackend>(self, state: &EvalState<'id, '_, B>) -> Option<ValueRecord>;
-    fn from_record<B: CacheBackend>(record: ValueRecord, state: &EvalState<'id, '_, B>) -> Self;
+#[derive(Serialize, Deserialize, Clone)]
+pub struct LambdaRecord {
+    body: Color,
+    captures: Vec<EvalHash>,
+}
+
+pub trait RecordRepr<'id>: Sized {
+    type AsRecord;
+
+    fn to_record(
+        self,
+        arena: &ColoredExprArena<'id>,
+        // this is a lambda so the caller can inject a side effect
+        hash_child: impl Fn(&RuntimeValue<'id>) -> Option<EvalHash>,
+    ) -> Option<Self::AsRecord>;
+    fn from_record<B: CacheBackend>(record: Self::AsRecord, state: &EvalState<'id, '_, B>) -> Self;
+}
+
+impl<'id> RecordRepr<'id> for EvalResult<'id> {
+    type AsRecord = ValueRecord;
+
+    fn to_record(
+        self,
+        arena: &ColoredExprArena<'id>,
+        hash_children: impl Fn(&RuntimeValue<'id>) -> Option<EvalHash>,
+    ) -> Option<Self::AsRecord> {
+        match self {
+            Self::Ok(value) => value.to_record(arena, hash_children),
+            Self::Err(_) => None,
+        }
+    }
+
+    fn from_record<B: CacheBackend>(record: ValueRecord, state: &EvalState<'id, '_, B>) -> Self {
+        Ok(RuntimeValue::from_record(record, state))
+    }
 }
 
 impl<'id> RecordRepr<'id> for RuntimeValue<'id> {
-    fn to_record<B: CacheBackend>(self, state: &EvalState<'id, '_, B>) -> Option<ValueRecord> {
+    type AsRecord = ValueRecord;
+
+    fn to_record(
+        self,
+        arena: &ColoredExprArena<'id>,
+        hash_children: impl Fn(&RuntimeValue<'id>) -> Option<EvalHash>,
+    ) -> Option<Self::AsRecord> {
         Some(match self {
-            Self::Lambda(lambda) => ValueRecord::Lambda {
-                body: state.arena()[lambda.body()]
-                    .color()
-                    .expect("stored expressions must be colored"),
-                captures: lambda
-                    .captures()
-                    .iter()
-                    .map(|thunk| thunk.store(state))
-                    .collect::<Option<_>>()?,
-            },
-            // thunks are transparent: an evaluated thunk stores as its result
-            Self::Thunk(thunk) => match &*thunk.state().borrow() {
-                ThunkState::Forced(Ok(value)) => value.clone().to_record(state)?,
-                // errors and not-yet-forced thunks aren't serializable yet
-                ThunkState::Forced(Err(_)) | ThunkState::Deferred { .. } => return None,
-                ThunkState::Evaluating => unreachable!(),
-            },
+            Self::Lambda(lambda) => ValueRecord::Lambda(lambda.to_record(arena, hash_children)?),
+            Self::Thunk(thunk) => return thunk.to_record(arena, hash_children),
 
             Self::Number(number) => ValueRecord::Number(number),
             Self::Bool(value) => ValueRecord::Bool(value),
@@ -60,29 +80,69 @@ impl<'id> RecordRepr<'id> for RuntimeValue<'id> {
 
     fn from_record<B: CacheBackend>(record: ValueRecord, state: &EvalState<'id, '_, B>) -> Self {
         match record {
-            ValueRecord::Lambda { body, captures } => Self::Lambda(RuntimeLambda::new(
-                *state
-                    .colors()
-                    .get(&body)
-                    .expect("expression colors must be in the reverse lookup"),
-                Callstack::from_thunks(
-                    captures
-                        .into_iter()
-                        .map(|hash| Thunk::new_forced(Ok(state.cache().get_value(hash, state))))
-                        .collect(),
-                ),
-            )),
+            ValueRecord::Lambda(record) => Self::Lambda(RuntimeLambda::from_record(record, state)),
             ValueRecord::Number(number) => Self::Number(number),
             ValueRecord::Bool(value) => Self::Bool(value),
         }
     }
 }
 
-impl<'id> Thunk<'id> {
-    /// Stores the thunk's result and returns its hash, or `None` if unstorable.
-    fn store<B: CacheBackend>(&self, state: &EvalState<'id, '_, B>) -> Option<EvalHash> {
-        state
-            .cache()
-            .store_value(&RuntimeValue::Thunk(self.clone()), state)
+impl<'id> RecordRepr<'id> for RuntimeLambda<'id> {
+    type AsRecord = LambdaRecord;
+
+    fn to_record(
+        self,
+        arena: &ColoredExprArena<'id>,
+        hash_children: impl Fn(&RuntimeValue<'id>) -> Option<EvalHash>,
+    ) -> Option<Self::AsRecord> {
+        Some(LambdaRecord {
+            body: arena[self.body()]
+                .color()
+                .expect("stored expressions must be colored"),
+            captures: self
+                .captures()
+                .iter()
+                .map(|thunk| hash_children(&RuntimeValue::Thunk(thunk.clone())))
+                .collect::<Option<_>>()?,
+        })
+    }
+
+    fn from_record<B: CacheBackend>(record: LambdaRecord, state: &EvalState<'id, '_, B>) -> Self {
+        RuntimeLambda::new(
+            *state
+                .colors()
+                .get(&record.body)
+                .expect("expression colors must be in the reverse lookup"),
+            Callstack::from_thunks(
+                record
+                    .captures
+                    .into_iter()
+                    .map(|hash| Thunk::new_forced(Ok(state.cache().get_value(hash, state))))
+                    .collect(),
+            ),
+        )
+    }
+}
+
+// thunks are transparent: an evaluated thunk records as its result
+impl<'id> RecordRepr<'id> for Thunk<'id> {
+    type AsRecord = ValueRecord;
+
+    fn to_record(
+        self,
+        arena: &ColoredExprArena<'id>,
+        hash_children: impl Fn(&RuntimeValue<'id>) -> Option<EvalHash>,
+    ) -> Option<Self::AsRecord> {
+        match &*self.state().borrow() {
+            ThunkState::Forced(result) => result.clone().to_record(arena, hash_children),
+
+            ThunkState::Evaluating => unreachable!(),
+            // TODO: deferred thunks aren't serializable yet
+            ThunkState::Deferred { .. } => None,
+        }
+    }
+
+    fn from_record<B: CacheBackend>(record: ValueRecord, state: &EvalState<'id, '_, B>) -> Self {
+        Thunk::new_forced(Ok(RuntimeValue::from_record(record, state)))
     }
 }
