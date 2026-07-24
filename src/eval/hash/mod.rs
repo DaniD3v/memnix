@@ -8,7 +8,7 @@ use crate::{
     coloring::ColoredExpr,
     eval::{
         CacheBackend, EvalState, ValueResult,
-        value::{Lambda, Number, Thunk, Value, thunk::ThunkState},
+        value::{Lambda, Number, Thunk, ThunkState, Value},
     },
 };
 

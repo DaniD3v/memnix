@@ -5,11 +5,8 @@ use cached::{ConcurrentCached, DiskCache};
 use crate::eval::{
     CacheBackend, EvalState,
     hash::{EvalHash, EvalHashable},
-    memoization::{
-        Disk,
-        value_record::{RecordRepr, ValueRecord},
-    },
-    value::Value,
+    memoization::Disk,
+    value::{RecordRepr, Value, ValueRecord},
 };
 
 pub struct Cache<B: CacheBackend> {
@@ -44,11 +41,7 @@ impl<B: CacheBackend> Cache<B> {
         expect_cache_failure(self.evals.cache_set(key, result));
     }
 
-    pub(super) fn get_value<'id>(
-        &self,
-        hash: EvalHash,
-        state: &EvalState<'id, '_, B>,
-    ) -> Value<'id> {
+    pub fn get_value<'id>(&self, hash: EvalHash, state: &EvalState<'id, '_, B>) -> Value<'id> {
         let record = expect_cache_failure(self.values.cache_get(&hash))
             .expect("the hash should be in the value store");
 
@@ -59,7 +52,7 @@ impl<B: CacheBackend> Cache<B> {
     /// or `None` if the value can't be serialized.
     ///
     /// Expects the records children to already be inserted
-    pub(super) fn store_value<'id>(
+    pub fn store_value<'id>(
         &self,
         value: &Value<'id>,
         state: &EvalState<'id, '_, B>,

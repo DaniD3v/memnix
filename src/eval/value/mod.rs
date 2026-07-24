@@ -1,8 +1,10 @@
 mod number;
-pub(in crate::eval) mod thunk;
+mod record;
+mod thunk;
 
 pub use number::Number;
-pub use thunk::{FromThunk, Thunk};
+pub use record::{RecordRepr, ValueRecord};
+pub use thunk::{FromThunk, Thunk, ThunkState};
 
 use getset::{CopyGetters, Getters};
 
