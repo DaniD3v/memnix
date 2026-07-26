@@ -14,7 +14,7 @@ use crate::{
     eval::{
         callstack::Callstack,
         error::EvalError,
-        hash::hash_expr_with_callstack,
+        hash::EvalHash,
         memoization::Cache,
         value::{Lambda, Number, Value},
     },
@@ -97,7 +97,7 @@ impl<'id, B: CacheBackend> Eval<'id, B> for &ColoredExpr<'id> {
         // through static analysis that the thunk must be evaluated
         //
         // only consider thunks in the key if they might be used
-        let cache_key = hash_expr_with_callstack(self, &state);
+        let cache_key = EvalHash::new_pure(self, &state);
 
         if let Some(cache_key) = cache_key
             && let Some(result) = state.cache().get_result(cache_key, &state)
@@ -114,13 +114,13 @@ impl<'id, B: CacheBackend> Eval<'id, B> for &ColoredExpr<'id> {
             MirExpr::Param(param) => {
                 Ok(Value::Thunk(state.callstack[param.nesting_depth()].clone()))
             }
-        }?;
+        };
 
         if let Some(cache_key) = cache_key {
             state.cache().store_result(cache_key, &result, &state);
         }
 
-        Ok(result)
+        result
     }
 }
 

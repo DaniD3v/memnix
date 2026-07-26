@@ -66,10 +66,6 @@ impl<'id> Thunk<'id> {
 
         res
     }
-
-    pub fn is_forced(&self) -> bool {
-        matches!(*self.state.borrow(), ThunkState::Forced(_))
-    }
 }
 
 impl<'id> Value<'id> {

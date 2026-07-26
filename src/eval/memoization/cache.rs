@@ -3,17 +3,17 @@ use std::fmt::Debug;
 use cached::{ConcurrentCached, DiskCache};
 
 use crate::eval::{
-    CacheBackend, EvalState,
-    hash::{EvalHash, EvalHashable},
+    CacheBackend, EvalState, ValueResult,
+    hash::{EvalHash, ValueHash},
     memoization::Disk,
     value::{RecordRepr, Value, ValueRecord},
 };
 
 pub struct Cache<B: CacheBackend> {
     // hash(obj) -> obj
-    values: B::Store<EvalHash, ValueRecord>,
+    values: B::Store<ValueHash, ValueRecord>,
     // hash(expr + callstack) -> hash(result)
-    evals: B::Store<EvalHash, EvalHash>,
+    evals: B::Store<EvalHash, ValueHash>,
 }
 
 impl<B: CacheBackend> Cache<B> {
@@ -32,7 +32,7 @@ impl<B: CacheBackend> Cache<B> {
     pub fn store_result<'id>(
         &self,
         key: EvalHash,
-        result: &Value<'id>,
+        result: &ValueResult<'id>,
         state: &EvalState<'id, '_, B>,
     ) {
         let Some(result) = self.store_value(result, state) else {
@@ -41,7 +41,7 @@ impl<B: CacheBackend> Cache<B> {
         expect_cache_failure(self.evals.cache_set(key, result));
     }
 
-    pub fn get_value<'id>(&self, hash: EvalHash, state: &EvalState<'id, '_, B>) -> Value<'id> {
+    pub fn get_value<'id>(&self, hash: ValueHash, state: &EvalState<'id, '_, B>) -> Value<'id> {
         let record = expect_cache_failure(self.values.cache_get(&hash))
             .expect("the hash should be in the value store");
 
@@ -50,17 +50,13 @@ impl<B: CacheBackend> Cache<B> {
 
     /// Inserts `value` into the value store and returns its hash,
     /// or `None` if the value can't be serialized.
-    ///
-    /// Expects the records children to already be inserted
     pub fn store_value<'id>(
         &self,
-        value: &Value<'id>,
+        value: &ValueResult<'id>,
         state: &EvalState<'id, '_, B>,
-    ) -> Option<EvalHash> {
-        let record = value
-            .clone()
-            .to_record(state.arena(), |value| self.store_value(value, state))?;
-        let hash = value.compute_hash(state);
+    ) -> Option<ValueHash> {
+        let record = value.to_record(state.arena(), |child| self.store_value(child, state))?;
+        let hash = ValueHash::from_record(&record);
 
         expect_cache_failure(self.values.cache_set(hash, record));
         Some(hash)

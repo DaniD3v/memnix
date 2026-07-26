@@ -3,8 +3,8 @@ mod record;
 mod thunk;
 
 pub use number::Number;
-pub use record::{RecordRepr, ValueRecord};
-pub use thunk::{FromThunk, Thunk, ThunkState};
+pub use record::{CallstackRecord, RecordRepr, ValueRecord};
+pub use thunk::{FromThunk, Thunk};
 
 use getset::{CopyGetters, Getters};
 
