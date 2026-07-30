@@ -1,7 +1,7 @@
 use blake3::Hasher;
 
 use crate::{
-    Arena, ArenaId,
+    arena::{Arena, ArenaId},
     coloring::{Colorable, ColoredExpr},
     mir::{Intrinsic, Literal, MirExpr, MirLambda, MirLambdaCall, Param},
 };

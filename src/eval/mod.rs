@@ -4,12 +4,12 @@ mod callstack;
 mod error;
 mod hash;
 mod memoization;
-mod value;
+pub mod value;
 
 use std::collections::HashMap;
 
 use crate::{
-    Arena, ArenaId,
+    arena::{Arena, ArenaId},
     coloring::{Color, ColorableRootExpr, ColoredExpr},
     eval::{
         callstack::Callstack,
@@ -70,7 +70,7 @@ impl<'id, 'a, B: CacheBackend> EvalState<'id, 'a, B> {
     }
 }
 
-pub fn eval_root_expr<'id>(root: &ColorableRootExpr<'id>) -> ValueResult<'id> {
+pub fn eval_root_expr<'id>(root: &ColorableRootExpr<'id, '_>) -> ValueResult<'id> {
     let ctx = EvalCtx {
         arena: root.arena(),
         color_map: root

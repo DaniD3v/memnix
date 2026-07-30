@@ -4,22 +4,21 @@ mod lazy_arena;
 use core::fmt;
 use std::{
     fmt::{Debug, Formatter},
-    marker::PhantomData,
     ops::{Index, IndexMut},
     slice, vec,
 };
 
 use getset::CopyGetters;
 
-pub use debug::{DebugState, DebugWith, DebugWithWrapper};
+pub use debug::{DebugState, DebugWith};
 pub use lazy_arena::{LazyArena, LazyArenaId, LazyDebugState};
 
 use crate::arena::debug::DebugArena;
 
 #[derive(Debug)]
-pub struct Arena<'id, T> {
+pub struct Arena<'id, T: 'id> {
     inner: Vec<T>,
-    _id_invariant: PhantomData<fn(&'id ()) -> &'id ()>,
+    id: generativity::Id<'id>,
 }
 
 /// An `ArenaId` is an index into the `Arena` with the lifetime `id`.
@@ -28,21 +27,15 @@ pub struct Arena<'id, T> {
 pub struct ArenaId<'id> {
     #[getset(get_copy = "pub")]
     idx: usize,
-    _id_invariant: PhantomData<fn(&'id ()) -> &'id ()>,
+    id: generativity::Id<'id>,
 }
 
-impl<'id, T> Default for Arena<'id, T> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<'id, T> Arena<'id, T> {
+impl<'id, T: 'id> Arena<'id, T> {
     // TODO add generativity id
-    pub fn new() -> Self {
+    pub fn new(guard: generativity::Guard<'id>) -> Self {
         Self {
             inner: Vec::new(),
-            _id_invariant: PhantomData,
+            id: guard.into(),
         }
     }
 
@@ -50,10 +43,38 @@ impl<'id, T> Arena<'id, T> {
         let idx = self.inner.len();
         self.inner.push(val);
 
-        ArenaId {
-            idx,
-            _id_invariant: PhantomData,
+        ArenaId { idx, id: self.id }
+    }
+
+    /// Extends this arena by the contents of another
+    ///
+    /// `root`: The previous root node.
+    /// The returned `ArenaId` will be the `T` equivalent of the previous root node.
+    ///
+    /// `transform_idx`: Should transform all of T's internal `LazyArenaId` references
+    /// to `ArenaId` references using the provided mapping closure.
+    pub fn extend_map<'other, I>(
+        &mut self,
+        other: Arena<'other, I>,
+        // TODO: better design
+        root_node: ArenaId<'other>,
+        transform_idx: impl Fn(I, &dyn Fn(ArenaId<'other>) -> ArenaId<'id>) -> T,
+    ) -> ArenaId<'id> {
+        let idx_map = {
+            let self_size = self.size();
+            let self_id = self.id;
+
+            move |id: ArenaId<'other>| ArenaId {
+                idx: self_size + id.idx(),
+                id: self_id,
+            }
+        };
+
+        for item in other {
+            self.alloc(transform_idx(item, &idx_map));
         }
+
+        idx_map(root_node)
     }
 
     pub fn map<I>(self, transform: fn(T) -> I) -> Arena<'id, I> {
@@ -61,22 +82,17 @@ impl<'id, T> Arena<'id, T> {
 
         Arena {
             inner: new_vec,
-            _id_invariant: self._id_invariant,
+            id: self.id,
         }
     }
 
     pub fn get_index_from(&self, idx: usize) -> Option<ArenaId<'id>> {
-        self.inner.get(idx).map(|_| ArenaId {
-            idx,
-            _id_invariant: PhantomData,
-        })
+        self.inner.get(idx).map(|_| ArenaId { idx, id: self.id })
     }
 
-    pub fn iter_indices(&self) -> impl Iterator<Item = ArenaId<'id>> + 'id {
-        (0..self.inner.len()).map(|idx| ArenaId {
-            idx,
-            _id_invariant: PhantomData,
-        })
+    pub fn iter_indices(&self) -> impl Iterator<Item = ArenaId<'id>> + use<'id, T> {
+        let id = self.id;
+        (0..self.inner.len()).map(move |idx| ArenaId { idx, id })
     }
 
     pub fn size(&self) -> usize {

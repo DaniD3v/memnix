@@ -9,7 +9,7 @@ pub use thunk::{FromThunk, Thunk};
 use getset::{CopyGetters, Getters};
 
 use crate::{
-    ArenaId,
+    arena::ArenaId,
     eval::{CacheBackend, EvalState, callstack::Callstack, error::EvalError},
 };
 

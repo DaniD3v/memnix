@@ -3,8 +3,6 @@ mod colorable_impl;
 mod expr;
 mod graph;
 
-use crate::Arena;
-
 use serde::{Deserialize, Serialize};
 
 use std::{
@@ -12,9 +10,11 @@ use std::{
     fmt::{Debug, Formatter},
 };
 
+use crate::arena::Arena;
+
 pub use algorithm::color_graph;
 pub use expr::{ColorableRootExpr, ColoredExpr, ColoredExprArena};
-pub use graph::{ArenaBackedGraph, AsDot};
+pub use graph::ArenaBackedGraph;
 
 /// Uniquely identifies a nix object.
 ///

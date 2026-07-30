@@ -1,8 +1,7 @@
 use std::fmt::{self, Debug};
 
 use crate::{
-    Arena, ArenaId,
-    arena::{DebugState, DebugWith, LazyArenaId},
+    arena::{Arena, ArenaId, DebugState, DebugWith, LazyArenaId},
     generic_lang::{GenericLambda, GenericLambdaCall, WithExprType},
     mir::{Intrinsic, Literal, Param, lang::LazyMirExpr},
 };

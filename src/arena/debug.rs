@@ -5,7 +5,7 @@ use std::{
     marker::PhantomData,
 };
 
-use crate::{Arena, ArenaId};
+use crate::arena::{Arena, ArenaId};
 
 pub trait DebugWith<T>: Sized {
     fn fmt_with(&self, with: &T, f: &mut Formatter<'_>) -> std::fmt::Result;
@@ -70,6 +70,7 @@ pub struct DebugWithWrapper<'a, W, T: DebugWith<W>> {
     with: &'a W,
 }
 
+#[allow(dead_code)] // TODO
 impl<'a, W, T: DebugWith<W>> DebugWithWrapper<'a, W, T> {
     pub fn new(inner: &'a T, with: &'a W) -> Self {
         Self { inner, with }

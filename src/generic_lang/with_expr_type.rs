@@ -1,5 +1,6 @@
-use crate::{ArenaId, arena::LazyArenaId};
+use crate::arena::{ArenaId, LazyArenaId};
 
+// TODO: modify this to have a simpler signature + name
 /// Swaps the Expression of a generic lang item to the new Expression type `E`
 ///
 /// `'p`: lifetime of the previous expr

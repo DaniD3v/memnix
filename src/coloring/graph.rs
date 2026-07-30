@@ -11,20 +11,20 @@ use petgraph::{
 };
 
 use crate::{
-    ArenaId,
+    arena::ArenaId,
     coloring::{ColorableRootExpr, expr::ColoredExprArena},
     mir::MirExpr,
 };
 
 // TODO make this generic or sth
 #[derive(Getters, MutGetters)]
-pub struct ArenaBackedGraph<'b> {
+pub struct ArenaBackedGraph<'b, 'a> {
     #[get = "pub"]
-    root_node: ColorableRootExpr<'b>,
+    root_node: ColorableRootExpr<'b, 'a>,
 }
 
-impl<'id> ArenaBackedGraph<'id> {
-    pub fn from_root_node(root_node: ColorableRootExpr<'id>) -> Self {
+impl<'id, 'a> ArenaBackedGraph<'id, 'a> {
+    pub fn from_root_node(root_node: ColorableRootExpr<'id, 'a>) -> Self {
         Self { root_node }
     }
 
@@ -37,7 +37,7 @@ impl<'id> ArenaBackedGraph<'id> {
     }
 }
 
-impl<'b> GraphBase for ArenaBackedGraph<'b> {
+impl<'b> GraphBase for ArenaBackedGraph<'b, '_> {
     type NodeId = ArenaId<'b>;
 
     // The `u32` slot disambiguates parallel edges.
@@ -48,12 +48,12 @@ impl<'b> GraphBase for ArenaBackedGraph<'b> {
     type EdgeId = (ArenaId<'b>, ArenaId<'b>, u32);
 }
 
-impl<'id> Data for ArenaBackedGraph<'id> {
+impl<'id> Data for ArenaBackedGraph<'id, '_> {
     type NodeWeight = ();
     type EdgeWeight = ();
 }
 
-impl<'id> IntoNodeIdentifiers for &ArenaBackedGraph<'id> {
+impl<'id> IntoNodeIdentifiers for &ArenaBackedGraph<'id, '_> {
     type NodeIdentifiers = <Vec<ArenaId<'id>> as IntoIterator>::IntoIter;
 
     fn node_identifiers(self) -> Self::NodeIdentifiers {
@@ -65,7 +65,7 @@ impl<'id> IntoNodeIdentifiers for &ArenaBackedGraph<'id> {
     }
 }
 
-impl<'id> IntoNeighbors for &ArenaBackedGraph<'id> {
+impl<'id> IntoNeighbors for &ArenaBackedGraph<'id, '_> {
     type Neighbors = <Vec<ArenaId<'id>> as IntoIterator>::IntoIter;
 
     fn neighbors(self, node: Self::NodeId) -> Self::Neighbors {
@@ -78,7 +78,7 @@ impl<'id> IntoNeighbors for &ArenaBackedGraph<'id> {
     }
 }
 
-impl NodeIndexable for ArenaBackedGraph<'_> {
+impl NodeIndexable for ArenaBackedGraph<'_, '_> {
     fn node_bound(&self) -> usize {
         self.arena().size()
     }
@@ -95,7 +95,7 @@ impl NodeIndexable for ArenaBackedGraph<'_> {
     }
 }
 
-impl<'id> IntoNodeReferences for &ArenaBackedGraph<'id> {
+impl<'id> IntoNodeReferences for &ArenaBackedGraph<'id, '_> {
     type NodeRef = (Self::NodeId, ());
     type NodeReferences = Box<dyn Iterator<Item = Self::NodeRef> + 'id>;
 
@@ -104,7 +104,7 @@ impl<'id> IntoNodeReferences for &ArenaBackedGraph<'id> {
     }
 }
 
-impl<'id, 'a> IntoEdgeReferences for &'a ArenaBackedGraph<'id> {
+impl<'id, 'a> IntoEdgeReferences for &'a ArenaBackedGraph<'id, '_> {
     type EdgeRef = FieldEdgeRef<'a, 'id>;
     type EdgeReferences = Box<dyn Iterator<Item = Self::EdgeRef> + 'a>;
 
@@ -127,13 +127,14 @@ impl<'id, 'a> IntoEdgeReferences for &'a ArenaBackedGraph<'id> {
     }
 }
 
-impl GraphProp for ArenaBackedGraph<'_> {
+impl GraphProp for ArenaBackedGraph<'_, '_> {
     type EdgeType = Directed;
 }
 
-pub struct AsDot<'a, 'id>(pub &'a ArenaBackedGraph<'id>);
+#[allow(dead_code)] // TODO
+pub struct AsDot<'a, 'b, 'id>(pub &'a ArenaBackedGraph<'id, 'b>);
 
-impl fmt::Debug for AsDot<'_, '_> {
+impl fmt::Debug for AsDot<'_, '_, '_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let dot = Dot::with_attr_getters(
             self.0,

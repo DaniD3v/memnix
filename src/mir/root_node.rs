@@ -4,8 +4,7 @@ use getset::Getters;
 use rnix::Root;
 
 use crate::{
-    ArenaId,
-    arena::{DebugState, DebugWith, LazyArena},
+    arena::{ArenaId, DebugState, DebugWith, LazyArena},
     generic_lang::WithExprType,
     mir::{
         Intrinsic, MirExpr, MirResolveError,
@@ -22,8 +21,8 @@ pub struct RootExpr<'id> {
 }
 
 impl<'id> RootExpr<'id> {
-    pub fn new<'a>(root: Root) -> Result<RootExpr<'a>, MirResolveError> {
-        let mut arena = LazyArena::new();
+    pub fn new(root: Root, guard: generativity::Guard<'id>) -> Result<Self, MirResolveError> {
+        let mut arena = LazyArena::new(guard);
 
         let root_resolver = RootResolver::new(&mut arena);
         let root_node = root
@@ -31,7 +30,7 @@ impl<'id> RootExpr<'id> {
             .expect("parsing errors")
             .resolve(&root_resolver, &mut arena)?;
 
-        let (arena, root_node) = arena.flatten(
+        let (arena, root_node) = arena.flatten_map(
             root_node,
             MirExpr::Intrinsic(Intrinsic::RefCycleError),
             |expr, map| expr.with_expr(&map),

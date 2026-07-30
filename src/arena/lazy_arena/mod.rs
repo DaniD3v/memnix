@@ -12,13 +12,12 @@ use std::{
     ops::{Deref, DerefMut, Index},
 };
 
-use crate::{Arena, ArenaId};
+use crate::arena::{Arena, ArenaId};
 
 /// An extended write-only Arena that allows `Deferred` or `Reference` values.
 ///
 /// It simplifies building lazy / cyclic structures and
 /// can be normalized to an `Arena` with the `flatten` method.
-#[derive(Default)]
 pub struct LazyArena<'id, T>(Arena<'id, MaybeOrRef<'id, T>>);
 
 // new-type because `LazyArenaId` must not implement `PartialEq`
@@ -35,8 +34,8 @@ pub enum MaybeOrRef<'id, S> {
 }
 
 impl<'id, T> LazyArena<'id, T> {
-    pub fn new() -> Self {
-        Self(Arena::new())
+    pub fn new(guard: generativity::Guard<'id>) -> Self {
+        Self(Arena::new(guard))
     }
 
     pub fn alloc(&mut self, t: T) -> LazyArenaId<'id> {
@@ -64,13 +63,21 @@ impl<'id, T> LazyArena<'id, T> {
     ///
     /// `transform_idx`: Should transform all of T's internal `LazyArenaId` references
     /// to `ArenaId` references using the provided mapping closure.
-    pub fn flatten<O>(
+    pub fn flatten_map<O>(
         mut self,
         root_node: LazyArenaId<'id>,
         cycle_placeholder: O,
         transform_idx: impl Fn(T, &dyn Fn(LazyArenaId<'id>) -> ArenaId<'id>) -> O,
+        // TODO: this is super unsafe, it needs a new lifetime
     ) -> (Arena<'id, O>, ArenaId<'id>) {
-        let mut new_arena = Arena::new(); // TODO: with_capacity
+        // TODO: with_capacity
+        // TODO: maybe a nicer api to express
+        //       "yes I really wanna have two arenas with the same brand"
+        let mut new_arena = Arena {
+            inner: Vec::new(),
+            id: self.0.id,
+        };
+
         let mut idx_mapping = vec![None; self.size()];
 
         // Assign sequential new indices to non-`Ref` entries.

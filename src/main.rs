@@ -1,21 +1,7 @@
 use std::{fs, path::PathBuf};
 
 use clap::Parser;
-
-use crate::{
-    coloring::{ArenaBackedGraph, AsDot, ColorableRootExpr, color_graph},
-    eval::eval_root_expr,
-    mir::RootExpr,
-};
-
-pub mod arena;
-pub mod coloring;
-mod eval;
-pub mod generic_lang;
-pub mod mir;
-
-// TODO: remove this re-export
-pub use arena::{Arena, ArenaId};
+use memnix::{EnvSettings, Evaluator};
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -29,19 +15,9 @@ fn main() {
     let input_content = fs::read_to_string(&args.input_file)
         .unwrap_or_else(|_| panic!("failed to read {:#?}", args.input_file));
 
-    let root = rnix::Root::parse(&input_content).tree();
-    println!("Ast: {:#?}", root);
-
-    let mir_expr = RootExpr::new(root).unwrap();
-    println!("Mir: {:#?}", mir_expr);
-
-    let mut colored_graph =
-        ArenaBackedGraph::from_root_node(ColorableRootExpr::from_mir_root(mir_expr));
-    color_graph(&mut colored_graph);
-
-    let _ = fs::write("out.dot", format!("{:?}", AsDot(&colored_graph)));
-    println!("Hashed: {:#?}", colored_graph.root_node());
-
-    let eval = eval_root_expr(colored_graph.root_node());
-    println!("Eval: {:#?}", eval)
+    let eval = Evaluator::default();
+    eval.with_env(EnvSettings::default(), |mut env| {
+        let result = env.eval_raw(&input_content);
+        println!("result: {:?}", result.unwrap().kind())
+    })
 }

@@ -1,5 +1,5 @@
 use crate::{
-    ArenaId,
+    arena::ArenaId,
     eval::{
         CacheBackend, Eval, EvalState, ValueResult, callstack::Callstack, error::EvalError,
         value::Value,

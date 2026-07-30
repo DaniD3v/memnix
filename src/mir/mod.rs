@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! This module wraps the primitive rnix-ast into a more high-level format
 
 mod error;

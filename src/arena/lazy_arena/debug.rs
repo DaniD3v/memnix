@@ -1,12 +1,9 @@
 use std::fmt::{self, Formatter};
 
-use crate::{
-    ArenaId,
-    arena::{
-        DebugWith, LazyArena, LazyArenaId,
-        debug::{DebugArena, GenericDebugState},
-        lazy_arena::MaybeOrRef,
-    },
+use crate::arena::{
+    ArenaId, DebugWith, LazyArena, LazyArenaId,
+    debug::{DebugArena, GenericDebugState},
+    lazy_arena::MaybeOrRef,
 };
 
 pub type LazyDebugState<'id, 'a, T> = GenericDebugState<'id, 'a, LazyArena<'id, T>>;
