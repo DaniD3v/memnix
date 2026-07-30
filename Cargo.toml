@@ -1,7 +1,11 @@
 [package]
 name = "memnix"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
+
+description = "from scratch nix language evaluator that does incremental evaluation"
+repository = "https://github.com/DaniD3v/memnix"
+license = "MIT"
 
 [dependencies]
 rnix = "0.14.0"
