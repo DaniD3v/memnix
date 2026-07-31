@@ -67,7 +67,6 @@ impl<'id> Env<'id> {
     /// # Evaluator::default().with_env(EnvSettings::default(), |mut env| {
     /// let res = env.eval_raw("1 + 1").unwrap();
     /// assert!(matches!(res.kind(), ValueKind::Number(_)));
-    /// #   Ok::<_, Box<dyn std::error::Error>>(())
     /// # });
     /// ```
     pub fn eval_raw(&mut self, expr: &str) -> Result<Value<'id>, EmptyError> {
