@@ -4,7 +4,7 @@ use getset::{CopyGetters, Getters, MutGetters};
 
 use crate::{
     arena::{ArenaId, DebugState, DebugWith},
-    coloring::expr::ColoredExprArena,
+    coloring::{ColoredExpr, expr::ColoredExprArena},
     generic_lang::WithExprType,
     mir::RootExpr,
 };
@@ -16,21 +16,28 @@ pub struct ColorableRootExpr<'id, 'a> {
     arena: &'a mut ColoredExprArena<'id>,
 
     #[get_copy = "pub"]
-    root_node: ArenaId<'id>,
+    root_node_id: ArenaId<'id>,
 }
 
 impl<'id: 'b, 'a, 'b> ColorableRootExpr<'id, 'a> {
     pub fn from_mir_root(arena: &'a mut ColoredExprArena<'id>, mir_root: RootExpr<'b>) -> Self {
         let (og_arena, root_node) = mir_root.into_parts();
-        let root_node = arena.extend_map(og_arena, root_node, |expr, map| expr.with_expr(map));
+        let root_node_id = arena.extend_map(og_arena, root_node, |expr, map| expr.with_expr(map));
 
-        Self { arena, root_node }
+        Self {
+            arena,
+            root_node_id,
+        }
+    }
+
+    pub fn root_node(&self) -> &ColoredExpr<'id> {
+        &self.arena[self.root_node_id]
     }
 }
 
 impl Debug for ColorableRootExpr<'_, '_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let debug_state = DebugState::new(self.arena);
-        self.root_node.fmt_with(&debug_state, f)
+        self.root_node_id.fmt_with(&debug_state, f)
     }
 }
