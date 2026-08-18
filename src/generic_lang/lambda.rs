@@ -2,7 +2,7 @@ use std::fmt::Formatter;
 
 use getset::Getters;
 
-use crate::{arena::DebugWith, generic_lang::WithExprType, mir::Param};
+use crate::{arena::DebugWith, mir::Param};
 
 #[derive(Clone, Getters, Debug)]
 #[getset(get = "pub")]
@@ -20,27 +20,18 @@ impl<E> GenericLambda<E> {
     pub fn depth(&self) -> usize {
         self.param.nesting_depth()
     }
+
+    pub fn convert_inner<To>(self, map: impl Fn(E) -> To) -> GenericLambda<To> {
+        GenericLambda {
+            param: self.param,
+            body: map(self.body),
+        }
+    }
 }
 
 impl<E: Clone> GenericLambda<E> {
     pub fn children(&self) -> impl Iterator<Item = (E, &str)> {
         [(self.body.clone(), "body")].into_iter()
-    }
-}
-
-impl<'p, 'n, From: WithExprType<'p, 'n, To>, To> WithExprType<'p, 'n, GenericLambda<To>>
-    for GenericLambda<From>
-{
-    type State<'s>
-        = From::State<'s>
-    where
-        'p: 's;
-
-    fn with_expr<'s>(self, state: Self::State<'s>) -> GenericLambda<To> {
-        GenericLambda {
-            param: self.param.clone(),
-            body: self.body.with_expr(state),
-        }
     }
 }
 

@@ -2,7 +2,7 @@ use std::fmt::Formatter;
 
 use getset::Getters;
 
-use crate::{arena::DebugWith, generic_lang::WithExprType};
+use crate::arena::DebugWith;
 
 // TODO: copy getter when `E: Copy`
 #[derive(Debug, Getters)]
@@ -16,6 +16,13 @@ impl<E> GenericLambdaCall<E> {
     pub fn new(lambda: E, argument: E) -> Self {
         Self { lambda, argument }
     }
+
+    pub fn convert_inner<To>(self, map: impl Fn(E) -> To) -> GenericLambdaCall<To> {
+        GenericLambdaCall {
+            lambda: map(self.lambda),
+            argument: map(self.argument),
+        }
+    }
 }
 
 impl<E: Clone> GenericLambdaCall<E> {
@@ -25,22 +32,6 @@ impl<E: Clone> GenericLambdaCall<E> {
             (self.argument.clone(), "argument"),
         ]
         .into_iter()
-    }
-}
-
-impl<'p, 'n, From: WithExprType<'p, 'n, To>, To> WithExprType<'p, 'n, GenericLambdaCall<To>>
-    for GenericLambdaCall<From>
-{
-    type State<'s>
-        = From::State<'s>
-    where
-        'p: 's;
-
-    fn with_expr<'s>(self, state: Self::State<'s>) -> GenericLambdaCall<To> {
-        GenericLambdaCall {
-            lambda: self.lambda.with_expr(state.clone()),
-            argument: self.argument.with_expr(state),
-        }
     }
 }
 

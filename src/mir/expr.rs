@@ -1,9 +1,9 @@
 use std::fmt::{self, Debug};
 
 use crate::{
-    arena::{Arena, ArenaId, DebugState, DebugWith, LazyArenaId},
-    generic_lang::{GenericLambda, GenericLambdaCall, WithExprType},
-    mir::{Intrinsic, Literal, Param, lang::LazyMirExpr},
+    arena::{Arena, ArenaId, DebugState, DebugWith},
+    generic_lang::{GenericLambda, GenericLambdaCall},
+    mir::{Intrinsic, Literal, Param},
 };
 
 pub enum GenericMirExpr<Id> {
@@ -30,22 +30,15 @@ impl<Id: Clone> GenericMirExpr<Id> {
             _ => Box::new(std::iter::empty()),
         }
     }
-}
 
-impl<'p, 'n: 'p> WithExprType<'p, 'n, MirExpr<'n>> for LazyMirExpr<'p> {
-    type State<'s>
-        = &'s dyn Fn(LazyArenaId<'p>) -> ArenaId<'n>
-    where
-        'p: 's;
-
-    fn with_expr<'s>(self, state: Self::State<'s>) -> MirExpr<'n> {
+    pub fn convert_inner<To>(self, map: impl Fn(Id) -> To) -> GenericMirExpr<To> {
         match self {
-            Self::LambdaCall(inner) => MirExpr::LambdaCall(inner.with_expr(state)),
-            Self::Lambda(inner) => MirExpr::Lambda(inner.with_expr(state)),
+            Self::LambdaCall(inner) => GenericMirExpr::LambdaCall(inner.convert_inner(map)),
+            Self::Lambda(inner) => GenericMirExpr::Lambda(inner.convert_inner(map)),
 
-            Self::Literal(inner) => MirExpr::Literal(inner),
-            Self::Param(inner) => MirExpr::Param(inner),
-            Self::Intrinsic(inner) => MirExpr::Intrinsic(inner),
+            Self::Literal(inner) => GenericMirExpr::Literal(inner),
+            Self::Param(inner) => GenericMirExpr::Param(inner),
+            Self::Intrinsic(inner) => GenericMirExpr::Intrinsic(inner),
         }
     }
 }

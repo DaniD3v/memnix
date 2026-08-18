@@ -5,7 +5,6 @@ use rnix::Root;
 
 use crate::{
     arena::{ArenaId, DebugState, DebugWith, LazyArena},
-    generic_lang::WithExprType,
     mir::{
         Intrinsic, MirExpr, MirResolveError,
         expr::ExprArena,
@@ -33,7 +32,7 @@ impl<'id> RootExpr<'id> {
         let (arena, root_node) = arena.flatten_map(
             root_node,
             MirExpr::Intrinsic(Intrinsic::RefCycleError),
-            |expr, map| expr.with_expr(&map),
+            |expr, map| expr.convert_inner(map),
         );
 
         Ok(RootExpr { arena, root_node })

@@ -9,7 +9,6 @@ use std::fmt::{Debug, Formatter};
 use crate::{
     arena::{Arena, ArenaId, DebugState, DebugWith},
     coloring::Color,
-    generic_lang::WithExprType,
     mir::MirExpr,
 };
 
@@ -27,17 +26,15 @@ pub struct ColoredExpr<'id> {
 
 pub type ColoredExprArena<'id> = Arena<'id, ColoredExpr<'id>>;
 
-impl<'p, 'n: 'p> WithExprType<'p, 'n, ColoredExpr<'n>> for ColoredExpr<'p> {
-    type State<'s>
-        = &'s dyn Fn(ArenaId<'p>) -> ArenaId<'n>
-    where
-        'p: 's;
-
-    fn with_expr<'s>(self, state: Self::State<'s>) -> ColoredExpr<'n> {
+impl<'id> ColoredExpr<'id> {
+    pub fn convert_inner_idx<'n>(
+        self,
+        map: impl Fn(ArenaId<'id>) -> ArenaId<'n>,
+    ) -> ColoredExpr<'n> {
         ColoredExpr {
             expr: match self.expr {
-                MirExpr::LambdaCall(inner) => MirExpr::LambdaCall(inner.with_expr(state)),
-                MirExpr::Lambda(inner) => MirExpr::Lambda(inner.with_expr(state)),
+                MirExpr::LambdaCall(inner) => MirExpr::LambdaCall(inner.convert_inner(map)),
+                MirExpr::Lambda(inner) => MirExpr::Lambda(inner.convert_inner(map)),
 
                 MirExpr::Literal(inner) => MirExpr::Literal(inner),
                 MirExpr::Param(inner) => MirExpr::Param(inner),
@@ -46,23 +43,16 @@ impl<'p, 'n: 'p> WithExprType<'p, 'n, ColoredExpr<'n>> for ColoredExpr<'p> {
             color: self.color,
         }
     }
-}
 
-impl<'p, 'n: 'p> WithExprType<'p, 'n, ColoredExpr<'n>> for MirExpr<'p> {
-    type State<'s>
-        = &'s dyn Fn(ArenaId<'p>) -> ArenaId<'n>
-    where
-        'p: 's;
-
-    fn with_expr<'s>(self, state: Self::State<'s>) -> ColoredExpr<'n> {
+    pub fn from_mir<'p>(prev: MirExpr<'p>, map: impl Fn(ArenaId<'p>) -> ArenaId<'id>) -> Self {
         ColoredExpr {
-            expr: match self {
-                Self::LambdaCall(inner) => MirExpr::LambdaCall(inner.with_expr(state)),
-                Self::Lambda(inner) => MirExpr::Lambda(inner.with_expr(state)),
+            expr: match prev {
+                MirExpr::LambdaCall(inner) => MirExpr::LambdaCall(inner.convert_inner(map)),
+                MirExpr::Lambda(inner) => MirExpr::Lambda(inner.convert_inner(map)),
 
-                Self::Literal(inner) => MirExpr::Literal(inner),
-                Self::Param(inner) => MirExpr::Param(inner),
-                Self::Intrinsic(inner) => MirExpr::Intrinsic(inner),
+                MirExpr::Literal(inner) => MirExpr::Literal(inner),
+                MirExpr::Param(inner) => MirExpr::Param(inner),
+                MirExpr::Intrinsic(inner) => MirExpr::Intrinsic(inner),
             },
             color: None,
         }
