@@ -55,7 +55,7 @@ impl EvalHash {
         state: &EvalState<'id, '_, B>,
     ) -> Option<Self> {
         let record = EvaluationRecord {
-            expr: (*expr.color())?,
+            expr: expr.color()?,
             callstack: state.callstack.to_record(state.arena(), |child| {
                 ValueHash::new_pure(child, state.arena())
             })?,

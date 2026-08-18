@@ -13,13 +13,14 @@ use crate::{
     mir::MirExpr,
 };
 
-use getset::{Getters, MutGetters};
+use getset::{CopyGetters, Getters, MutGetters};
 
-#[derive(Getters, MutGetters)]
+#[derive(Getters, CopyGetters, MutGetters)]
 pub struct ColoredExpr<'id> {
     #[get = "pub"]
     expr: MirExpr<'id>,
-    #[get = "pub"]
+
+    #[get_copy = "pub"]
     #[get_mut = "pub"]
     color: Option<Color>,
 }
