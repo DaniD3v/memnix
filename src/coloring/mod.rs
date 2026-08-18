@@ -2,6 +2,7 @@ mod algorithm;
 mod colorable_impl;
 mod expr;
 mod graph;
+mod tests;
 
 use serde::{Deserialize, Serialize};
 
