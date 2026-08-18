@@ -4,7 +4,7 @@ use generativity::make_guard;
 use crate::{
     api::value::EmptyError,
     arena::Arena,
-    coloring::{ArenaBackedGraph, ColorableRootExpr, ColoredExpr, color_graph},
+    coloring::{ColorableRootExpr, ColoredExpr, color_graph},
     eval::eval_root_expr,
     mir::RootExpr,
     value::Value,
@@ -77,11 +77,10 @@ impl<'id> Env<'id> {
         make_guard!(temp_id);
         let mir = RootExpr::new(ast, temp_id).unwrap();
 
-        let colored_root = ColorableRootExpr::from_mir_root(&mut self.arena, mir);
-        let mut colored_graph = ArenaBackedGraph::from_root_node(colored_root);
-        color_graph(&mut colored_graph);
+        let mut colored_root = ColorableRootExpr::from_mir_root(&mut self.arena, mir);
+        color_graph(&mut colored_root);
 
-        let res = eval_root_expr(colored_graph.root_node()).unwrap();
+        let res = eval_root_expr(&colored_root).unwrap();
         Ok(Value::new(res))
     }
 }

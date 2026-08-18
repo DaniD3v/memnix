@@ -2,11 +2,11 @@ use petgraph::algo::tarjan_scc;
 
 use crate::{
     arena::ArenaId,
-    coloring::{ArenaBackedGraph, Colorable, expr::ColoredExprArena},
+    coloring::{Colorable, ColorableRootExpr, expr::ColoredExprArena},
 };
 
 // TODO: don't re-color already colored items
-pub fn color_graph<'id, 'a>(graph: &'a mut ArenaBackedGraph<'id, '_>) {
+pub fn color_graph<'id>(graph: &mut ColorableRootExpr<'id, '_>) {
     // this list is already in a `leaf -> root` ordering
     let scc_list = tarjan_scc(&*graph);
 

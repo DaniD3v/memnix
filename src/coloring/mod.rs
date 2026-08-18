@@ -14,7 +14,6 @@ use crate::arena::Arena;
 
 pub use algorithm::color_graph;
 pub use expr::{ColorableRootExpr, ColoredExpr, ColoredExprArena};
-pub use graph::ArenaBackedGraph;
 
 /// Uniquely identifies a nix object.
 ///
