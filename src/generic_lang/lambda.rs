@@ -18,7 +18,7 @@ impl<E> GenericLambda<E> {
     }
 
     pub fn depth(&self) -> usize {
-        self.param.nesting_depth()
+        self.param.nesting_level()
     }
 
     pub fn convert_inner<To>(self, map: impl Fn(E) -> To) -> GenericLambda<To> {

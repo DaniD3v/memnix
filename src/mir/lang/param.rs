@@ -7,17 +7,17 @@ pub struct Param {
     /// Every param can be uniquely identified by
     /// it's nesting depth
     #[getset(get_copy = "pub")]
-    nesting_depth: usize,
+    nesting_level: usize,
 }
 
 impl Param {
     pub fn new<'b>(resolver: &impl Resolver<'b>) -> Self {
         Self {
-            nesting_depth: resolver.get_param_nesting_depth(),
+            nesting_level: resolver.get_param_nesting_level(),
         }
     }
 
-    pub fn at_depth(nesting_depth: usize) -> Self {
-        Self { nesting_depth }
+    pub fn at_depth(nesting_level: usize) -> Self {
+        Self { nesting_level }
     }
 }

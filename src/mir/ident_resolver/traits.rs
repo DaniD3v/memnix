@@ -21,7 +21,7 @@ pub trait Resolver<'bump> {
     ) -> Result<LazyArenaId<'bump>, MirResolveError>;
 
     /// Returns how deeply nested the current lambda parameter is
-    fn get_param_nesting_depth(&self) -> usize;
+    fn get_param_nesting_level(&self) -> usize;
     fn get_builtins(&self) -> &WrappedIntrinsics<'bump>;
 }
 
@@ -33,8 +33,8 @@ impl<'b, T: Resolver<'b>> Resolver<'b> for &T {
     ) -> Result<LazyArenaId<'b>, MirResolveError> {
         (*self).resolve_ident(ident, bump)
     }
-    fn get_param_nesting_depth(&self) -> usize {
-        (*self).get_param_nesting_depth()
+    fn get_param_nesting_level(&self) -> usize {
+        (*self).get_param_nesting_level()
     }
     fn get_builtins(&self) -> &WrappedIntrinsics<'b> {
         (*self).get_builtins()

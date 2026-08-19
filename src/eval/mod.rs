@@ -112,7 +112,7 @@ impl<'id, B: CacheBackend> Eval<'id, B> for &ColoredExpr<'id> {
 
             MirExpr::Intrinsic(intrinsic) => intrinsic.eval(state.clone()),
             MirExpr::Param(param) => {
-                Ok(Value::Thunk(state.callstack[param.nesting_depth()].clone()))
+                Ok(Value::Thunk(state.callstack[param.nesting_level()].clone()))
             }
         };
 

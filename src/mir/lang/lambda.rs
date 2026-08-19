@@ -58,11 +58,11 @@ impl Resolve for ast::Lambda {
         }
         .into();
 
-        let body_resolver = LambdaParamResolver {
-            ident: param_name.clone(),
-            expr: bump.alloc(LazyMirExpr::Param(Param::new(resolver))),
-            parent: resolver,
-        };
+        let body_resolver = LambdaParamResolver::new(
+            param_name,
+            bump.alloc(LazyMirExpr::Param(Param::new(resolver))),
+            resolver,
+        );
         let body = self.body().unwrap().resolve(&body_resolver, bump)?;
 
         Ok(LazyMirLambda::new(Param::new(&resolver), body))

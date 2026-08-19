@@ -73,7 +73,7 @@ impl<'id> Colorable<'id> for &MirLambda<'id> {
 impl<'id> Colorable<'id> for Param {
     fn depend_on(self, hasher: &mut blake3::Hasher, _: &Arena<'id, ColoredExpr>) {
         TypeDiscriminant::Param.apply(hasher);
-        hasher.update(&self.nesting_depth().to_le_bytes());
+        hasher.update(&self.nesting_level().to_le_bytes());
     }
 }
 
