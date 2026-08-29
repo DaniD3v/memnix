@@ -23,15 +23,13 @@ impl<E> GenericLambdaCall<E> {
             argument: map(self.argument),
         }
     }
-}
 
-impl<E: Clone> GenericLambdaCall<E> {
-    pub fn children(&self) -> impl Iterator<Item = (E, &str)> {
-        [
-            (self.lambda.clone(), "lambda"),
-            (self.argument.clone(), "argument"),
-        ]
-        .into_iter()
+    pub fn edges(&self) -> impl Iterator<Item = &E> {
+        [&self.lambda, &self.argument].into_iter()
+    }
+
+    pub fn edges_labeled(&self) -> impl Iterator<Item = (&E, &str)> {
+        self.edges().zip(["lambda", "argument"])
     }
 }
 

@@ -1,4 +1,4 @@
-use std::fmt::Formatter;
+use std::{fmt::Formatter, iter};
 
 use getset::Getters;
 
@@ -27,11 +27,13 @@ impl<E> GenericLambda<E> {
             body: map(self.body),
         }
     }
-}
 
-impl<E: Clone> GenericLambda<E> {
-    pub fn children(&self) -> impl Iterator<Item = (E, &str)> {
-        [(self.body.clone(), "body")].into_iter()
+    pub fn edges(&self) -> impl Iterator<Item = &E> {
+        iter::once(&self.body)
+    }
+
+    pub fn edges_labeled(&self) -> impl Iterator<Item = (&E, &str)> {
+        self.edges().zip(iter::once("body"))
     }
 }
 

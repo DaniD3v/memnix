@@ -6,9 +6,9 @@ use crate::{
     mir::{Intrinsic, Literal, Param},
 };
 
-pub enum GenericMirExpr<Id> {
-    LambdaCall(GenericLambdaCall<Id>),
-    Lambda(GenericLambda<Id>),
+pub enum GenericMirExpr<Edge> {
+    LambdaCall(GenericLambdaCall<Edge>),
+    Lambda(GenericLambda<Edge>),
 
     Literal(Literal),
     Param(Param),
@@ -21,16 +21,27 @@ pub type ExprArena<'id> = Arena<'id, MirExpr<'id>>;
 pub type MirLambdaCall<'id> = GenericLambdaCall<ArenaId<'id>>;
 pub type MirLambda<'id> = GenericLambda<ArenaId<'id>>;
 
-impl<Id: Clone> GenericMirExpr<Id> {
-    pub fn children(&self) -> Box<dyn Iterator<Item = (Id, &str)> + '_> {
+impl<Edge> GenericMirExpr<Edge> {
+    pub fn edges(&self) -> Box<dyn Iterator<Item = &Edge> + '_> {
         match self {
-            Self::LambdaCall(lambda_call) => Box::new(lambda_call.children()),
-            Self::Lambda(lambda) => Box::new(lambda.children()),
+            Self::LambdaCall(lambda_call) => Box::new(lambda_call.edges()),
+            Self::Lambda(lambda) => Box::new(lambda.edges()),
 
             _ => Box::new(std::iter::empty()),
         }
     }
 
+    pub fn edges_labeled(&self) -> Box<dyn Iterator<Item = (&Edge, &str)> + '_> {
+        match self {
+            Self::LambdaCall(lambda_call) => Box::new(lambda_call.edges_labeled()),
+            Self::Lambda(lambda) => Box::new(lambda.edges_labeled()),
+
+            _ => Box::new(std::iter::empty()),
+        }
+    }
+}
+
+impl<Id: Clone> GenericMirExpr<Id> {
     pub fn convert_inner<To>(self, map: impl Fn(Id) -> To) -> GenericMirExpr<To> {
         match self {
             Self::LambdaCall(inner) => GenericMirExpr::LambdaCall(inner.convert_inner(map)),

@@ -55,8 +55,7 @@ impl<'id> IntoNeighbors for &ColorableRootExpr<'id, '_> {
     fn neighbors(self, node: Self::NodeId) -> Self::Neighbors {
         self.arena()[node]
             .expr()
-            .children()
-            .map(|(id, _)| id)
+            .edges().copied()
             .collect::<Vec<_>>()
             .into_iter()
     }
@@ -93,10 +92,10 @@ impl<'id, 'a> IntoEdgeReferences for &'a ColorableRootExpr<'id, '_> {
 
     fn edge_references(self) -> Self::EdgeReferences {
         Box::new(self.arena().iter_indices().flat_map(move |source| {
-            self.arena()[source].expr().children().enumerate().map(
+            self.arena()[source].expr().edges_labeled().enumerate().map(
                 move |(slot, (target, field))| FieldEdgeRef {
                     source,
-                    target,
+                    target: *target,
                     slot: slot as u32,
                     field,
                 },

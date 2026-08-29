@@ -51,8 +51,8 @@ impl<'id> Colorable<'id> for &MirLambdaCall<'id> {
     fn depend_on(self, hasher: &mut Hasher, arena: &Arena<'id, ColoredExpr<'_>>) {
         TypeDiscriminant::LambdaCall.apply(hasher);
 
-        self.children().for_each(|(idx, label)| {
-            idx.depend_on(hasher, arena);
+        self.edges_labeled().for_each(|(idx, label)| {
+            (*idx).depend_on(hasher, arena);
             hasher.update(label.as_bytes());
         });
     }
@@ -63,8 +63,8 @@ impl<'id> Colorable<'id> for &MirLambda<'id> {
         TypeDiscriminant::Lambda.apply(hasher);
 
         self.param().clone().depend_on(hasher, arena);
-        self.children().for_each(|(idx, label)| {
-            idx.depend_on(hasher, arena);
+        self.edges_labeled().for_each(|(idx, label)| {
+            (*idx).depend_on(hasher, arena);
             hasher.update(label.as_bytes());
         });
     }
