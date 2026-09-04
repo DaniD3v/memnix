@@ -1,10 +1,11 @@
 use std::{fmt::Formatter, iter};
 
 use getset::Getters;
+use serde::{Deserialize, Serialize};
 
 use crate::{arena::DebugWith, mir::Param};
 
-#[derive(Clone, Getters, Debug)]
+#[derive(Serialize, Deserialize, Clone, Getters, Debug)]
 #[getset(get = "pub")]
 pub struct GenericLambda<E> {
     // theres goofy `{}` desugars too but lets ignore those for now

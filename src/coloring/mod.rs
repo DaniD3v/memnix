@@ -1,9 +1,9 @@
 mod algorithm;
-mod colorable_impl;
 mod expr;
 mod graph;
 mod tests;
 
+use blake3::Hasher;
 use serde::{Deserialize, Serialize};
 
 use std::{
@@ -11,33 +11,23 @@ use std::{
     fmt::{Debug, Formatter},
 };
 
-use crate::arena::Arena;
-
 pub use algorithm::color_graph;
 pub use expr::{ColorableRootExpr, ColoredExpr, ColoredExprArena};
 
-/// Uniquely identifies a nix object.
-///
-/// Objects sharing the same color must be semantically equivalent.
-/// They must thus include the hashes of all their dependencies.
-pub trait Colorable<'id>: Sized {
-    /// Depend on this object's color.
-    ///
-    /// Implementation Detail:
-    ///   The colors of objects of 2 different types must never be equal.
-    ///   This means the color must include some sort of type id.
-    fn depend_on(self, hasher: &mut blake3::Hasher, arena: &Arena<'id, ColoredExpr>);
-
-    fn compute_color(self, arena: &Arena<'id, ColoredExpr>) -> Color {
-        let mut hasher = blake3::Hasher::new();
-        self.depend_on(&mut hasher, arena);
-
-        Color(hasher.finalize())
-    }
-}
+use crate::{arena::Arena, mir::MirExpr};
 
 #[derive(Serialize, Deserialize, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Color(pub blake3::Hash);
+
+impl<'id> MirExpr<'id> {
+    pub fn color(self, arena: &Arena<'id, ColoredExpr<'_>>) -> Color {
+        Color(
+            postcard::to_io(&self.convert_inner(|id| arena[id].color()), Hasher::new())
+                .unwrap()
+                .finalize(),
+        )
+    }
+}
 
 impl Color {
     pub fn as_bytes(&self) -> &[u8; 32] {

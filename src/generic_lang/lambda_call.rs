@@ -1,11 +1,12 @@
 use std::fmt::Formatter;
 
 use getset::Getters;
+use serde::{Deserialize, Serialize};
 
 use crate::arena::DebugWith;
 
 // TODO: copy getter when `E: Copy`
-#[derive(Debug, Getters)]
+#[derive(Serialize, Deserialize, Clone, Debug, Getters)]
 #[getset(get = "pub")]
 pub struct GenericLambdaCall<E> {
     lambda: E,

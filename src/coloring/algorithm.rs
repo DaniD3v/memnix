@@ -2,7 +2,7 @@ use petgraph::algo::tarjan_scc;
 
 use crate::{
     arena::ArenaId,
-    coloring::{Colorable, ColorableRootExpr, expr::ColoredExprArena},
+    coloring::{ColorableRootExpr, expr::ColoredExprArena},
 };
 
 // TODO: don't re-color already colored items
@@ -22,7 +22,7 @@ fn color_refinement<'id>(arena: &mut ColoredExprArena<'id>, scc: &[ArenaId<'id>]
 
         // compute all colors in this cycle
         for &node in scc {
-            let color = arena[node].expr().compute_color(arena);
+            let color = arena[node].expr().clone().color(arena);
             colors.push(color);
         }
 

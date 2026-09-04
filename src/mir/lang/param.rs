@@ -1,8 +1,9 @@
 use getset::CopyGetters;
+use serde::{Deserialize, Serialize};
 
 use crate::mir::ident_resolver::Resolver;
 
-#[derive(Clone, PartialEq, CopyGetters, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, CopyGetters, Debug)]
 pub struct Param {
     /// Every param can be uniquely identified by
     /// it's nesting depth

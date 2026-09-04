@@ -1,11 +1,14 @@
 use std::fmt::{self, Debug};
 
+use serde::{Deserialize, Serialize};
+
 use crate::{
     arena::{Arena, ArenaId, DebugState, DebugWith},
     generic_lang::{GenericLambda, GenericLambdaCall},
     mir::{Intrinsic, Literal, Param},
 };
 
+#[derive(Serialize, Deserialize, Clone)]
 pub enum GenericMirExpr<Edge> {
     LambdaCall(GenericLambdaCall<Edge>),
     Lambda(GenericLambda<Edge>),

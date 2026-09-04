@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use strum::{EnumCount, EnumIter};
 
 use crate::{
@@ -9,7 +10,7 @@ use crate::{
     },
 };
 
-#[derive(EnumIter, EnumCount, Copy, Clone, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, EnumIter, EnumCount, Copy, Clone, PartialEq, Debug)]
 #[repr(u8)]
 pub enum Intrinsic {
     IfElse,
