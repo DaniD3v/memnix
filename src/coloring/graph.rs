@@ -11,20 +11,6 @@ use petgraph::{
 
 use crate::{arena::ArenaId, coloring::ColorableRootExpr, mir::MirExpr};
 
-// impl<'id, 'a> ColorableRootExpr<'id, 'a> {
-//     pub fn from_root_node(root_node: ColorableRootExpr<'id, 'a>) -> Self {
-//         Self { root_node }
-//     }
-
-//     pub fn arena(&self) -> &ColoredExprArena<'id> {
-//         self.root_node.arena()
-//     }
-
-//     pub fn arena_mut(&mut self) -> &mut ColoredExprArena<'id> {
-//         self.root_node.arena_mut()
-//     }
-// }
-
 impl<'b> GraphBase for ColorableRootExpr<'b, '_> {
     type NodeId = ArenaId<'b>;
 
@@ -55,7 +41,8 @@ impl<'id> IntoNeighbors for &ColorableRootExpr<'id, '_> {
     fn neighbors(self, node: Self::NodeId) -> Self::Neighbors {
         self.arena()[node]
             .expr()
-            .edges().copied()
+            .edges()
+            .copied()
             .collect::<Vec<_>>()
             .into_iter()
     }
