@@ -109,7 +109,6 @@ impl fmt::Debug for AsDot<'_, '_, '_> {
                     MirExpr::Literal(inner) => &format!("{:?}", inner),
                     MirExpr::Param(inner) => &format!("{:?}", inner),
                     MirExpr::Intrinsic(inner) => &format!("{:?}", inner),
-                    MirExpr::LambdaCall(_) => "LambdaCall",
                     MirExpr::Lambda(_) => "Lambda",
                 };
                 let inner_expr = format!("{}: {}", idx.idx(), inner_expr);

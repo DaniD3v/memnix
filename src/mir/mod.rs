@@ -3,12 +3,10 @@
 mod error;
 mod expr;
 mod ident_resolver;
-mod intrinsic;
 mod lang;
 mod root_node;
 
 pub use error::MirResolveError;
-pub use expr::{MirExpr, MirLambda, MirLambdaCall};
-pub use intrinsic::{Intrinsic, WrappedIntrinsics};
+pub use expr::{MirExpr, MirIntrinsic, MirLambda};
 pub use lang::{Ident, Literal, Param};
 pub use root_node::RootExpr;

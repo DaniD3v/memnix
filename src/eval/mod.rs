@@ -1,5 +1,4 @@
-mod builtins;
-mod call_lambda;
+mod builtins; // TODO(this commit): rename to intrinsics
 mod callstack;
 mod error;
 mod hash;
@@ -107,10 +106,9 @@ impl<'id, B: CacheBackend> Eval<'id, B> for &ColoredExpr<'id> {
 
         let result = match self.expr() {
             MirExpr::Lambda(lambda) => lambda.eval(state.clone()),
-            MirExpr::LambdaCall(lambda_call) => lambda_call.eval(state.clone()),
-            MirExpr::Literal(literal) => literal.eval(state.clone()),
-
             MirExpr::Intrinsic(intrinsic) => intrinsic.eval(state.clone()),
+
+            MirExpr::Literal(literal) => literal.eval(state.clone()),
             MirExpr::Param(param) => {
                 Ok(Value::Thunk(state.callstack[param.nesting_level()].clone()))
             }
@@ -136,6 +134,7 @@ impl<'b, B: CacheBackend> Eval<'b, B> for &Literal {
             Literal::Integer(num) => Value::Number(Number::Integer(*num)),
             Literal::Float(num) => Value::Number(Number::Float(*num)),
 
+            Literal::RefCycleError => Err(EvalError::RefCycle)?,
             _ => todo!(),
         })
     }

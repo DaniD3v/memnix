@@ -66,10 +66,7 @@ impl EvalHash {
 }
 
 fn postcard_hash<T: Serialize>(value: &T) -> blake3::Hash {
-    let mut hasher = Hasher::new();
-
-    // this hashes byte-for-byte which is slow
-    postcard::to_io(value, &mut hasher).expect("blake3::Hasher should be infallible");
-
-    hasher.finalize()
+    postcard::to_io(value, Hasher::new())
+        .expect("blake3::Hasher should be infallible")
+        .finalize()
 }

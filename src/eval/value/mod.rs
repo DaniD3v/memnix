@@ -24,6 +24,7 @@ pub enum Value<'id> {
 }
 
 impl<'id, B: CacheBackend> FromThunk<'id, B> for Value<'id> {
+    // TODO: if the thunk is already forced we might as well use that
     fn from_thunk(value: Thunk<'id>, _: EvalState<'id, '_, B>) -> Result<Self, EvalError> {
         Ok(Value::Thunk(value))
     }
@@ -44,6 +45,15 @@ pub struct Lambda<'id> {
     body: ArenaId<'id>,
     #[getset(get = "pub")]
     captures: Callstack<'id>,
+}
+
+impl<'b, B: CacheBackend> FromThunk<'b, B> for Lambda<'b> {
+    fn from_thunk(value: Thunk<'b>, state: EvalState<'b, '_, B>) -> Result<Self, EvalError> {
+        match value.force(state)? {
+            Value::Lambda(ret) => Ok(ret),
+            _ => Err(EvalError::WrongType),
+        }
+    }
 }
 
 impl<'id> Lambda<'id> {

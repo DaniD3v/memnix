@@ -2,12 +2,14 @@ use ordered_float::NotNan;
 use rnix::ast::LiteralKind;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Hash, PartialEq, Clone, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub enum Literal {
     Integer(i64),
     Float(NotNan<f64>),
     Url(),
     String(),
+
+    RefCycleError,
 }
 
 impl From<LiteralKind> for Literal {

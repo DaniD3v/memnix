@@ -6,8 +6,8 @@ use rnix::Root;
 use crate::{
     arena::{ArenaId, DebugState, DebugWith, LazyArena},
     mir::{
-        Intrinsic, MirExpr, MirResolveError,
-        expr::ExprArena,
+        Literal, MirExpr, MirResolveError,
+        expr::MirExprArena,
         ident_resolver::{Resolve, RootResolver},
     },
 };
@@ -15,7 +15,7 @@ use crate::{
 #[derive(Getters)]
 #[getset(get = "pub")]
 pub struct RootExpr<'id> {
-    arena: ExprArena<'id>,
+    arena: MirExprArena<'id>,
     root_node: ArenaId<'id>,
 }
 
@@ -23,22 +23,21 @@ impl<'id> RootExpr<'id> {
     pub fn new(root: Root, guard: generativity::Guard<'id>) -> Result<Self, MirResolveError> {
         let mut arena = LazyArena::new(guard);
 
-        let root_resolver = RootResolver::new(&mut arena);
         let root_node = root
             .expr()
             .expect("parsing errors")
-            .resolve(&root_resolver, &mut arena)?;
+            .resolve(&RootResolver, &mut arena)?;
 
         let (arena, root_node) = arena.flatten_map(
             root_node,
-            MirExpr::Intrinsic(Intrinsic::RefCycleError),
+            MirExpr::Literal(Literal::RefCycleError),
             |expr, map| expr.convert_inner(map),
         );
 
         Ok(RootExpr { arena, root_node })
     }
 
-    pub fn into_parts(self) -> (ExprArena<'id>, ArenaId<'id>) {
+    pub fn into_parts(self) -> (MirExprArena<'id>, ArenaId<'id>) {
         (self.arena, self.root_node)
     }
 }

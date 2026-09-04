@@ -33,6 +33,12 @@ pub trait FromThunk<'id, B: CacheBackend>: Sized {
     fn from_thunk(value: Thunk<'id>, state: EvalState<'id, '_, B>) -> Result<Self, EvalError>;
 }
 
+impl<'id, B: CacheBackend> FromThunk<'id, B> for Thunk<'id> {
+    fn from_thunk(value: Thunk<'id>, _: EvalState<'id, '_, B>) -> Result<Self, EvalError> {
+        Ok(value)
+    }
+}
+
 impl<'id> Thunk<'id> {
     pub fn new(expr: ArenaId<'id>, callstack: Callstack<'id>) -> Self {
         Self {

@@ -1,6 +1,6 @@
 use crate::{
     arena::LazyArenaId,
-    mir::{Ident, WrappedIntrinsics, error::MirResolveError, lang::LazyExprArena},
+    mir::{Ident, error::MirResolveError, lang::LazyExprArena},
 };
 
 /// Ast type that can be resolved to a Mir type
@@ -22,7 +22,6 @@ pub trait Resolver<'bump> {
 
     /// Returns how deeply nested the current lambda parameter is
     fn get_param_nesting_level(&self) -> usize;
-    fn get_builtins(&self) -> &WrappedIntrinsics<'bump>;
 }
 
 impl<'b, T: Resolver<'b>> Resolver<'b> for &T {
@@ -35,8 +34,5 @@ impl<'b, T: Resolver<'b>> Resolver<'b> for &T {
     }
     fn get_param_nesting_level(&self) -> usize {
         (*self).get_param_nesting_level()
-    }
-    fn get_builtins(&self) -> &WrappedIntrinsics<'b> {
-        (*self).get_builtins()
     }
 }

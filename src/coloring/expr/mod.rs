@@ -33,12 +33,11 @@ impl<'id> ColoredExpr<'id> {
     ) -> ColoredExpr<'n> {
         ColoredExpr {
             expr: match self.expr {
-                MirExpr::LambdaCall(inner) => MirExpr::LambdaCall(inner.convert_inner(map)),
                 MirExpr::Lambda(inner) => MirExpr::Lambda(inner.convert_inner(map)),
+                MirExpr::Intrinsic(inner) => MirExpr::Intrinsic(inner.convert_inner(map)),
 
                 MirExpr::Literal(inner) => MirExpr::Literal(inner),
                 MirExpr::Param(inner) => MirExpr::Param(inner),
-                MirExpr::Intrinsic(inner) => MirExpr::Intrinsic(inner),
             },
             color: self.color,
         }
@@ -47,12 +46,11 @@ impl<'id> ColoredExpr<'id> {
     pub fn from_mir<'p>(prev: MirExpr<'p>, map: impl Fn(ArenaId<'p>) -> ArenaId<'id>) -> Self {
         ColoredExpr {
             expr: match prev {
-                MirExpr::LambdaCall(inner) => MirExpr::LambdaCall(inner.convert_inner(map)),
                 MirExpr::Lambda(inner) => MirExpr::Lambda(inner.convert_inner(map)),
+                MirExpr::Intrinsic(inner) => MirExpr::Intrinsic(inner.convert_inner(map)),
 
                 MirExpr::Literal(inner) => MirExpr::Literal(inner),
                 MirExpr::Param(inner) => MirExpr::Param(inner),
-                MirExpr::Intrinsic(inner) => MirExpr::Intrinsic(inner),
             },
             color: None,
         }
@@ -79,12 +77,11 @@ impl<'id> DebugWith<DebugState<'id, '_, ColoredExpr<'id>>> for MirExpr<'id> {
         f: &mut Formatter<'_>,
     ) -> std::fmt::Result {
         match self {
-            Self::LambdaCall(inner) => inner.fmt_with(with, f),
             Self::Lambda(inner) => inner.fmt_with(with, f),
+            Self::Intrinsic(inner) => inner.fmt_with(with, f),
 
             Self::Literal(inner) => inner.fmt(f),
             Self::Param(inner) => inner.fmt(f),
-            Self::Intrinsic(inner) => inner.fmt(f),
         }
     }
 }

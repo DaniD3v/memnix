@@ -2,33 +2,21 @@ use std::collections::BTreeMap;
 
 use crate::{
     arena::LazyArenaId,
-    mir::{
-        Ident, WrappedIntrinsics, error::MirResolveError, ident_resolver::Resolver,
-        lang::LazyExprArena,
-    },
+    mir::{Ident, error::MirResolveError, ident_resolver::Resolver, lang::LazyExprArena},
 };
 
-pub struct RootResolver<'bump>(WrappedIntrinsics<'bump>);
-impl<'b> RootResolver<'b> {
-    pub fn new(bump: &mut LazyExprArena<'b>) -> Self {
-        Self(WrappedIntrinsics::new(bump))
-    }
-}
-
-impl<'b> Resolver<'b> for RootResolver<'b> {
+pub struct RootResolver;
+impl<'id> Resolver<'id> for RootResolver {
     fn resolve_ident(
         &self,
         ident: &Ident,
         _: &LazyExprArena,
-    ) -> Result<LazyArenaId<'b>, MirResolveError> {
+    ) -> Result<LazyArenaId<'id>, MirResolveError> {
         Err(MirResolveError::IdentUnresolvable(ident.clone()))
     }
 
     fn get_param_nesting_level(&self) -> usize {
         0
-    }
-    fn get_builtins(&self) -> &WrappedIntrinsics<'b> {
-        &self.0
     }
 }
 
@@ -51,9 +39,6 @@ impl<'a, 'b> Resolver<'b> for LazyMapResolver<'a, 'b> {
 
     fn get_param_nesting_level(&self) -> usize {
         self.parent.get_param_nesting_level()
-    }
-    fn get_builtins(&self) -> &WrappedIntrinsics<'b> {
-        self.parent.get_builtins()
     }
 }
 
@@ -92,8 +77,5 @@ impl<'id, 'a> Resolver<'id> for LambdaParamResolver<'id, 'a> {
 
     fn get_param_nesting_level(&self) -> usize {
         self.nesting_level
-    }
-    fn get_builtins(&self) -> &WrappedIntrinsics<'id> {
-        self.parent.get_builtins()
     }
 }

@@ -1,33 +1,36 @@
-use rnix::ast::BinOp;
+use rnix::ast::{BinOp, BinOpKind};
 
-use crate::mir::{
-    Intrinsic,
-    error::MirResolveError,
-    ident_resolver::{Resolve, Resolver},
-    lang::{LazyExprArena, LazyMirLambdaCall},
+use crate::{
+    arena::LazyArenaId,
+    generic_lang::GenericIntrinsic,
+    mir::{
+        error::MirResolveError,
+        ident_resolver::{Resolve, Resolver},
+        lang::LazyExprArena,
+    },
 };
 
 impl Resolve for BinOp {
-    type Target<'a> = LazyMirLambdaCall<'a>;
+    type Target<'a> = GenericIntrinsic<LazyArenaId<'a>>;
 
     fn resolve<'b>(
         self,
         resolver: &impl Resolver<'b>,
         bump: &mut LazyExprArena<'b>,
-    ) -> Result<LazyMirLambdaCall<'b>, MirResolveError> {
+    ) -> Result<Self::Target<'b>, MirResolveError> {
         let operator_kind = self.operator().unwrap();
 
-        let lhs = self.lhs().unwrap().resolve(resolver, bump)?;
-        let rhs = self.rhs().unwrap().resolve(resolver, bump)?;
+        let params = [
+            self.lhs().unwrap().resolve(resolver, bump)?,
+            self.rhs().unwrap().resolve(resolver, bump)?,
+        ];
 
-        let lambda = match operator_kind {
-            rnix::ast::BinOpKind::LessOrEq => Intrinsic::LessOrEq.get_lambda(resolver),
-            rnix::ast::BinOpKind::Sub => Intrinsic::Subtract.get_lambda(resolver),
-            rnix::ast::BinOpKind::Add => Intrinsic::Add.get_lambda(resolver),
+        Ok(match operator_kind {
+            BinOpKind::LessOrEq => GenericIntrinsic::LessOrEq(params),
+            BinOpKind::Sub => GenericIntrinsic::Subtract(params),
+            BinOpKind::Add => GenericIntrinsic::Add(params),
 
             _ => todo!("Translate {:?} BinOp to Mir", operator_kind),
-        };
-
-        Ok(LazyMirLambdaCall::new_curried(lambda, &[lhs, rhs], bump))
+        })
     }
 }
