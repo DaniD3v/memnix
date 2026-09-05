@@ -14,15 +14,6 @@ use crate::{
 pub type LazyMirExpr<'id> = GenericMirExpr<LazyArenaId<'id>>;
 pub type LazyExprArena<'id> = LazyArena<'id, LazyMirExpr<'id>>;
 
-// pub enum MirExpr<'b> {
-//     LambdaCall(MirLambdaCall<'b>),
-//     Lambda(MirLambda<'b>),
-//     Literal(Literal),
-
-//     Param(Param),
-//     Intrinsic(Intrinsic),
-// }
-
 impl Resolve for ast::Expr {
     type Target<'bump> = LazyArenaId<'bump>;
 
