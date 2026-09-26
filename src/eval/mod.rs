@@ -103,13 +103,11 @@ impl<'id> ArenaId<'id> {
         }
 
         let result = match colored_expr.expr() {
-            MirExpr::Lambda(lambda) => lambda.eval(state.clone()),
+            MirExpr::Lambda(lambda) => lambda.eval(self, state.clone()),
             MirExpr::Intrinsic(intrinsic) => intrinsic.eval(state.clone()),
 
             MirExpr::Literal(literal) => literal.eval(),
-            MirExpr::Param(param) => {
-                Ok(Value::Thunk(state.callstack[param.nesting_level()].clone()))
-            }
+            MirExpr::Param(param) => Ok(Value::Thunk(state.callstack[param.clone()].clone())),
         };
 
         if let Some(cache_key) = cache_key {
@@ -120,8 +118,8 @@ impl<'id> ArenaId<'id> {
     }
 }
 
-impl<'b> Literal {
-    fn eval(&self) -> ValueResult<'b> {
+impl Literal {
+    fn eval<'b>(&self) -> ValueResult<'b> {
         Ok(match self {
             Literal::Integer(num) => Value::Number(Number::Integer(*num)),
             Literal::Float(num) => Value::Number(Number::Float(*num)),
@@ -133,8 +131,11 @@ impl<'b> Literal {
 }
 
 impl<'b> MirLambda<'b> {
-    fn eval<B: CacheBackend>(&self, state: EvalState<'b, '_, B>) -> ValueResult<'b> {
-        assert!(self.depth() <= state.callstack.len());
-        Ok(Value::Lambda(Lambda::new(*self.body(), state.callstack)))
+    fn eval<B: CacheBackend>(
+        &self,
+        self_id: ArenaId<'b>,
+        state: EvalState<'b, '_, B>,
+    ) -> ValueResult<'b> {
+        Ok(Value::Lambda(Lambda::new(self_id, state.callstack)))
     }
 }

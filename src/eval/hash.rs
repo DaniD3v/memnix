@@ -7,7 +7,8 @@ use crate::{
     coloring::{Color, ColoredExpr, ColoredExprArena},
     eval::{
         CacheBackend, EvalState, ValueResult,
-        value::{CallstackRecord, RecordRepr, ValueRecord},
+        callstack::CallstackRecord,
+        value::{RecordRepr, ValueRecord},
     },
 };
 

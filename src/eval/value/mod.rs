@@ -3,7 +3,7 @@ mod record;
 mod thunk;
 
 pub use number::Number;
-pub use record::{CallstackRecord, RecordRepr, ValueRecord};
+pub use record::{RecordRepr, ValueRecord};
 pub use thunk::{FromThunk, Thunk};
 
 use getset::{CopyGetters, Getters};
@@ -42,7 +42,7 @@ impl<'b, B: CacheBackend> FromThunk<'b, B> for bool {
 #[derive(Clone, Debug, Getters, CopyGetters)]
 pub struct Lambda<'id> {
     #[getset(get_copy = "pub")]
-    body: ArenaId<'id>,
+    expr_id: ArenaId<'id>,
     #[getset(get = "pub")]
     captures: Callstack<'id>,
 }
@@ -57,7 +57,7 @@ impl<'b, B: CacheBackend> FromThunk<'b, B> for Lambda<'b> {
 }
 
 impl<'id> Lambda<'id> {
-    pub fn new(body: ArenaId<'id>, captures: Callstack<'id>) -> Self {
-        Self { body, captures }
+    pub fn new(expr_id: ArenaId<'id>, captures: Callstack<'id>) -> Self {
+        Self { expr_id, captures }
     }
 }

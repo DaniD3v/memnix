@@ -4,7 +4,7 @@ use crate::{
     coloring::{Color, ColoredExprArena},
     eval::{
         CacheBackend, EvalState, ValueResult,
-        callstack::Callstack,
+        callstack::{Callstack, CallstackRecord},
         hash::ValueHash,
         value::{Lambda, Number, Thunk, Value, thunk::ThunkState},
     },
@@ -38,12 +38,9 @@ pub enum ValueRecord {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct LambdaRecord {
-    body: Color,
+    lambda: Color,
     captures: CallstackRecord,
 }
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct CallstackRecord(Vec<ValueHash>);
 
 impl<'id> RecordRepr<'id> for ValueResult<'id> {
     type Record = ValueRecord;
@@ -99,7 +96,7 @@ impl<'id> RecordRepr<'id> for Lambda<'id> {
         child_hash: impl Fn(&ValueResult<'id>) -> Option<ValueHash>,
     ) -> Option<Self::Record> {
         Some(LambdaRecord {
-            body: arena[self.body()]
+            lambda: arena[self.expr_id()]
                 .color()
                 .expect("stored expressions must be colored"),
             captures: self.captures().to_record(arena, child_hash)?,
@@ -110,7 +107,7 @@ impl<'id> RecordRepr<'id> for Lambda<'id> {
         Lambda::new(
             *state
                 .colors()
-                .get(&record.body)
+                .get(&record.lambda)
                 .expect("expression colors must be in the reverse lookup"),
             Callstack::from_record(record.captures, state),
         )
@@ -137,33 +134,5 @@ impl<'id> RecordRepr<'id> for Thunk<'id> {
 
     fn from_record<B: CacheBackend>(record: ValueRecord, state: &EvalState<'id, '_, B>) -> Self {
         Thunk::new_forced(Ok(Value::from_record(record, state)))
-    }
-}
-
-impl<'id> RecordRepr<'id> for Callstack<'id> {
-    type Record = CallstackRecord;
-
-    fn to_record(
-        &self,
-        _: &ColoredExprArena<'id>,
-        child_hash: impl Fn(&ValueResult<'id>) -> Option<ValueHash>,
-    ) -> Option<Self::Record> {
-        Some(CallstackRecord(
-            self.iter()
-                .map(|thunk| child_hash(&Ok(Value::Thunk(thunk.clone()))))
-                .collect::<Option<_>>()?,
-        ))
-    }
-
-    // TODO: this shouldn't lead to re-evaluation of thunks
-    fn from_record<B: CacheBackend>(record: Self::Record, state: &EvalState<'id, '_, B>) -> Self {
-        let thunks = record
-            .0
-            .iter()
-            .map(|hash| Thunk::new_forced(Ok(state.cache().get_value(*hash, state))))
-            .collect();
-
-        // TODO take an iterator here to avoid allocating
-        Callstack::from_thunks(thunks)
     }
 }

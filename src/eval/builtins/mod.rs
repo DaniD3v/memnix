@@ -6,7 +6,7 @@ use crate::{
         builtins::dispatch_intrinsic::dispatch,
         value::{Lambda, Number, Thunk},
     },
-    mir::MirIntrinsic,
+    mir::{MirExpr, MirIntrinsic},
 };
 
 macro_rules! dispatch_intrinsic {
@@ -44,8 +44,15 @@ pub fn lambda_call<'id, B: CacheBackend>(
     value: Thunk<'id>,
     ctx: &EvalCtx<'id, '_, B>,
 ) -> ValueResult<'id> {
-    lambda.body().eval(EvalState {
-        callstack: (lambda.captures().with_pushed(value)),
+    let lambda_expr = &ctx.arena[lambda.expr_id()];
+    let MirExpr::Lambda(lambda_expr) = lambda_expr.expr() else {
+        panic!("Lambda was not backed by a LambdaExpr")
+    };
+
+    lambda_expr.body().eval(EvalState {
+        callstack: lambda
+            .captures()
+            .with_pushed(lambda_expr.param().clone(), value),
         ctx,
     })
 }
