@@ -2,7 +2,7 @@ mod dispatch_intrinsic;
 
 use crate::{
     eval::{
-        CacheBackend, Eval, EvalCtx, EvalState, Value, ValueResult,
+        CacheBackend, EvalCtx, EvalState, Value, ValueResult,
         builtins::dispatch_intrinsic::dispatch,
         value::{Lambda, Number, Thunk},
     },
@@ -11,8 +11,8 @@ use crate::{
 
 macro_rules! dispatch_intrinsic {
     ( $($name:ident => $fn:ident),* $(,)? ) => {
-        impl<'id, B: CacheBackend> Eval<'id, B> for &MirIntrinsic<'id> {
-            fn eval(self, state: EvalState<'id, '_, B>) -> ValueResult<'id> {
+        impl<'id> MirIntrinsic<'id> {
+            pub fn eval<B: CacheBackend>(&self, state: EvalState<'id, '_, B>) -> ValueResult<'id> {
                 match self {$(
                     MirIntrinsic::$name(params) => dispatch($fn, *params, state),
                 )*}

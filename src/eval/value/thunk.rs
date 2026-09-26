@@ -1,8 +1,7 @@
 use crate::{
     arena::ArenaId,
     eval::{
-        CacheBackend, Eval, EvalState, ValueResult, callstack::Callstack, error::EvalError,
-        value::Value,
+        CacheBackend, EvalState, ValueResult, callstack::Callstack, error::EvalError, value::Value,
     },
 };
 
