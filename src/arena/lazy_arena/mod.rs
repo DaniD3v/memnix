@@ -61,6 +61,15 @@ impl<'id, T> LazyArena<'id, T> {
     /// `cycle_placeholder`: A value used in-place of `Ref` cycles.
     /// It is only allocated if a cycle actually exists.
     ///
+    /// example cycle that must only error on runtime:
+    /// ```nix
+    /// let
+    ///   a = b;
+    ///   b = a;
+    /// in
+    /// a
+    /// ```
+    ///
     /// `transform_idx`: Should transform all of T's internal `LazyArenaId` references
     /// to `ArenaId` references using the provided mapping closure.
     pub fn flatten_map<O>(
